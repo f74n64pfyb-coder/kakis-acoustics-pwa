@@ -76,6 +76,11 @@ const text = {
     change: "250-4000 ჰც საშუალო ცვლილება",
     report: "აკუსტიკის ანგარიში",
     printHint: "PDF-ის შესანახად აირჩიე Share/Print და Save to Files."
+    ,
+    cancel: "გაუქმება",
+    done: "დახურვა",
+    search: "ძებნა",
+    selectMaterial: "მასალის არჩევა"
   },
   en: {
     title: "Acoustics calculator",
@@ -150,6 +155,11 @@ const text = {
     change: "Average change from 250-4000 Hz",
     report: "Acoustics report",
     printHint: "To save as PDF choose Share/Print and Save to Files."
+    ,
+    cancel: "Cancel",
+    done: "Done",
+    search: "Search",
+    selectMaterial: "Select material"
   }
 };
 
@@ -187,6 +197,7 @@ const defaults = {
 };
 
 let state = loadState();
+let activePicker = null;
 
 function loadState() {
   try {
@@ -479,12 +490,13 @@ function renderDimensions() {
   box.appendChild(makeNumber(t("windowArea"), "windowArea", "m²"));
 }
 
-function materialSelect(kind, key) {
-  const select = document.createElement("select");
-  select.innerHTML = `<option value="-1">${t("select")}</option>` + materialOptions(kind).map((m, i) => `<option value="${i}">${sanitizeName(m.name)}</option>`).join("");
-  select.value = state[key];
-  select.onchange = () => setState(key, Number(select.value));
-  return select;
+function materialPickerButton(kind, selection, onSelect) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "material-picker";
+  button.innerHTML = `<span>${esc(selection >= 0 ? selectedMaterialName(kind, selection) : t("select"))}</span><b>›</b>`;
+  button.onclick = () => openMaterialPicker(kind, selection, onSelect);
+  return button;
 }
 
 function renderMaterialBlock(title, kind, key, area, extraTitle, rowsKey, areaKey) {
@@ -494,7 +506,7 @@ function renderMaterialBlock(title, kind, key, area, extraTitle, rowsKey, areaKe
   row.className = "material-row";
   const label = document.createElement("label");
   label.textContent = title;
-  label.appendChild(materialSelect(kind, key));
+  label.appendChild(materialPickerButton(kind, state[key], value => setState(key, value)));
   const areaEl = document.createElement("div");
   areaEl.className = "area";
   if (areaKey) areaEl.dataset.area = areaKey;
@@ -525,14 +537,11 @@ function extraRows(title, kind, key) {
       saveState();
       renderComputedOnly();
     };
-    const select = document.createElement("select");
-    select.innerHTML = `<option value="-1">${t("select")}</option>` + materialOptions(kind).map((m, i) => `<option value="${i}">${sanitizeName(m.name)}</option>`).join("");
-    select.value = item.selection ?? -1;
-    select.onchange = () => {
-      state[key][index].selection = Number(select.value);
+    const select = materialPickerButton(kind, Number(item.selection ?? -1), value => {
+      state[key][index].selection = value;
       saveState();
-      renderComputedOnly();
-    };
+      render();
+    });
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "remove-btn";
@@ -841,6 +850,52 @@ document.getElementById("export-btn").onclick = exportPdf;
 document.getElementById("export-btn-secondary").onclick = exportPdf;
 document.getElementById("alternative-enabled").onchange = e => setState("alternativeEnabled", e.target.checked);
 window.addEventListener("afterprint", () => document.body.classList.remove("printing"));
+
+function openMaterialPicker(kind, selection, onSelect) {
+  activePicker = {kind, selection, onSelect, query: ""};
+  document.getElementById("picker-backdrop").classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  document.getElementById("picker-search").value = "";
+  renderPickerOptions();
+}
+
+function closeMaterialPicker() {
+  activePicker = null;
+  document.getElementById("picker-backdrop").classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
+function renderPickerOptions() {
+  if (!activePicker) return;
+  const query = activePicker.query.trim().toLowerCase();
+  const options = [{name: t("select"), index: -1}, ...materialOptions(activePicker.kind).map((m, index) => ({name: sanitizeName(m.name), index}))];
+  const filtered = options.filter(option => option.index === -1 || !query || option.name.toLowerCase().includes(query));
+  document.getElementById("picker-options").innerHTML = filtered.map(option => `
+    <button type="button" class="${option.index === activePicker.selection ? "selected" : ""}" data-value="${option.index}">
+      <span>${esc(option.name)}</span>
+      ${option.index === activePicker.selection ? "<b>✓</b>" : ""}
+    </button>
+  `).join("");
+}
+
+document.getElementById("picker-search").addEventListener("input", event => {
+  if (!activePicker) return;
+  activePicker.query = event.target.value;
+  renderPickerOptions();
+});
+
+document.getElementById("picker-options").addEventListener("click", event => {
+  const button = event.target.closest("button[data-value]");
+  if (!button || !activePicker) return;
+  activePicker.onSelect(Number(button.dataset.value));
+  closeMaterialPicker();
+});
+
+document.getElementById("picker-cancel").onclick = closeMaterialPicker;
+document.getElementById("picker-done").onclick = closeMaterialPicker;
+document.getElementById("picker-backdrop").addEventListener("click", event => {
+  if (event.target.id === "picker-backdrop") closeMaterialPicker();
+});
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js");

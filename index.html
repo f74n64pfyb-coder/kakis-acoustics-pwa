@@ -106,6 +106,18 @@
       <section id="print-report" class="print-report" aria-hidden="true"></section>
     </div>
 
+    <div id="picker-backdrop" class="picker-backdrop hidden" role="presentation">
+      <section class="picker-sheet" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+        <div class="picker-header">
+          <button id="picker-cancel" type="button" data-i18n="cancel">გაუქმება</button>
+          <h2 id="picker-title" data-i18n="selectMaterial">მასალის არჩევა</h2>
+          <button id="picker-done" type="button" data-i18n="done">დახურვა</button>
+        </div>
+        <input id="picker-search" class="picker-search" type="search" autocomplete="off" data-i18n-placeholder="search" placeholder="ძებნა">
+        <div id="picker-options" class="picker-options"></div>
+      </section>
+    </div>
+
     <template id="number-template">
       <label class="field number-field">
         <span></span>

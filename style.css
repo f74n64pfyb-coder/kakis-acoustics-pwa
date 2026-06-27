@@ -922,27 +922,130 @@ td:first-child, th:first-child {
 }
 
 @media print {
-  @page { size: A4; margin: 12mm; }
+  @page { size: A4; margin: 10mm; }
   body { background: #fff; }
   body.printing main,
   body.printing .topbar {
     display: none !important;
   }
-  .app-shell { width: 100%; }
+  html,
+  body,
+  .app-shell {
+    width: 100%;
+    min-height: 0;
+  }
   .print-report {
     display: block;
   }
   .report-page {
+    display: block;
+    page-break-after: always;
     break-after: page;
+    min-height: 0;
     padding: 0;
-    gap: 13px;
+    overflow: hidden;
   }
   .report-page:last-child {
+    page-break-after: auto;
     break-after: auto;
   }
+  .intro-page {
+    min-height: 0;
+  }
+  .intro-page h1,
+  .explanation-page h1 {
+    margin-top: 46mm;
+  }
+  .intro-page .report-intro {
+    margin-top: 26mm;
+    max-width: 165mm;
+  }
+  .pdf-brand strong {
+    font-size: 22px;
+  }
+  .pdf-brand span {
+    font-size: 12px;
+  }
+  .calculation-page {
+    font-size: 12px;
+  }
+  .pdf-top-grid {
+    grid-template-columns: 58mm 1fr 1fr;
+    gap: 9mm;
+  }
+  .pdf-room-image img {
+    width: 55mm;
+    height: 35mm;
+  }
+  .pdf-inputs {
+    gap: 3px;
+  }
+  .pdf-field span {
+    font-size: 11px;
+  }
+  .pdf-field strong {
+    min-width: 28mm;
+    height: 15px;
+    line-height: 12px;
+    font-size: 10px;
+  }
+  .calculation-page h2,
+  .pdf-type {
+    margin: 4mm 0 2mm;
+    font-size: 13px;
+  }
+  .pdf-materials {
+    gap: 4px;
+  }
+  .pdf-material-row {
+    padding: 4px 0 3px;
+  }
+  .pdf-material-top {
+    grid-template-columns: 38mm 20mm 1fr;
+    gap: 8px;
+  }
+  .pdf-material-top strong {
+    font-size: 12px;
+  }
+  .pdf-material-top span,
+  .pdf-material-top em {
+    font-size: 10px;
+  }
+  .pdf-coefficients {
+    padding-left: 44mm;
+    font-size: 10px;
+  }
+  .report-table {
+    font-size: 10px;
+  }
+  .report-table td,
+  .report-table th {
+    padding: 4px 5px;
+    font-size: 10px;
+  }
   .chart {
-    height: 190px;
-    margin-top: 6px;
+    height: 38mm;
+    margin: 3mm 0 0;
+  }
+  .explanation-page .pdf-brand {
+    margin-bottom: 24mm;
+  }
+  .explanation-page h1 {
+    margin-top: 0;
+  }
+  .pdf-explainer {
+    margin-top: 26mm;
+    gap: 9mm;
+    padding: 6mm;
+  }
+  .pdf-explainer h2 {
+    font-size: 12px;
+    margin-bottom: 4mm;
+  }
+  .pdf-explainer p {
+    font-size: 10.5px;
+    line-height: 1.18;
+    margin-bottom: 5mm;
   }
   .extra-row {
     break-inside: avoid;

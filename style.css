@@ -993,9 +993,22 @@ td:first-child, th:first-child {
   }
 
   .topbar {
-    grid-template-columns: auto 1fr auto;
-    gap: 7px;
-    padding: 9px 10px 8px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "lang actions"
+      "title title";
+    gap: 8px 10px;
+    padding: 10px 12px 9px;
+  }
+
+  .segmented {
+    grid-area: lang;
+    justify-self: start;
+  }
+
+  .toolbar-actions {
+    grid-area: actions;
+    justify-self: end;
   }
 
   .segmented button {
@@ -1004,8 +1017,11 @@ td:first-child, th:first-child {
   }
 
   h1 {
+    grid-area: title;
     font-size: 16px;
-    max-width: 42vw;
+    max-width: 100%;
+    padding-top: 1px;
+    text-align: center;
   }
 
   .toolbar-actions {
@@ -1043,7 +1059,7 @@ td:first-child, th:first-child {
   }
 
   .choice-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
@@ -1053,6 +1069,8 @@ td:first-child, th:first-child {
 
   .choice-grid button {
     min-height: 46px;
+    padding: 8px 6px;
+    font-size: 13px;
   }
 
   .diagram-card {
@@ -1065,8 +1083,8 @@ td:first-child, th:first-child {
   }
 
   .number-field {
-    grid-template-columns: 1fr;
-    gap: 7px;
+    grid-template-columns: minmax(0, 1fr) minmax(126px, 42%);
+    gap: 10px;
   }
 
   .number-wrap {
@@ -1074,10 +1092,25 @@ td:first-child, th:first-child {
   }
 
   .metrics div,
-  .material-row,
   .result-summary {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+
+  .material-row {
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+    align-items: start;
+  }
+
+  .material-row label {
+    grid-column: 1 / -1;
+  }
+
+  .material-row .area {
+    grid-column: 1 / -1;
+    justify-self: start;
+    font-size: 13px;
   }
 
   .area {

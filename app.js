@@ -473,6 +473,7 @@ function makeNumber(label, key, unit) {
   const node = template.content.firstElementChild.cloneNode(true);
   node.querySelector("span").textContent = label;
   const input = node.querySelector("input");
+  input.enterKeyHint = "done";
   input.value = state[key] ?? "";
   input.placeholder = "0";
   input.addEventListener("input", () => {
@@ -906,6 +907,42 @@ document.getElementById("export-btn").onclick = exportPdf;
 document.getElementById("export-btn-secondary").onclick = exportPdf;
 document.getElementById("alternative-enabled").onchange = e => setState("alternativeEnabled", e.target.checked);
 window.addEventListener("afterprint", () => document.body.classList.remove("printing"));
+
+function blurActiveField() {
+  const active = document.activeElement;
+  if (active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) {
+    active.blur();
+  }
+}
+
+document.addEventListener("focusin", event => {
+  if (event.target.matches("input, textarea")) {
+    document.getElementById("keyboard-bar").classList.remove("hidden");
+  }
+});
+
+document.addEventListener("focusout", () => {
+  setTimeout(() => {
+    if (!document.activeElement || !document.activeElement.matches("input, textarea")) {
+      document.getElementById("keyboard-bar").classList.add("hidden");
+    }
+  }, 80);
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Enter" && event.target.matches("input")) {
+    event.preventDefault();
+    blurActiveField();
+  }
+});
+
+document.addEventListener("pointerdown", event => {
+  if (!event.target.closest("input, textarea, .keyboard-bar, .picker-sheet")) {
+    blurActiveField();
+  }
+});
+
+document.getElementById("keyboard-done").onclick = blurActiveField;
 
 function openMaterialPicker(kind, selection, onSelect) {
   activePicker = {kind, selection, onSelect, query: ""};

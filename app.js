@@ -746,38 +746,56 @@ function reportTable(title, values, suffix) {
   </table>`;
 }
 
+function coefficientLine(kind, selection) {
+  if (selection < 0) return "";
+  const material = materialOptions(kind)[selection];
+  if (!material) return "";
+  return material.values.map((value, index) => `${freqs[index]}hz: ${fmt(value)}`).join(" |");
+}
+
 function selectedMaterialName(kind, selection) {
   const material = materialOptions(kind)[selection];
   return material ? sanitizeName(material.name) : t("select");
 }
 
-function reportMaterialRows(c) {
+function reportCalculationRows(c) {
   const rows = [
-    [t("floor"), c.primaryFloor, selectedMaterialName("floor", state.floorSelection)],
-    [t("wall"), c.primaryWall, selectedMaterialName("wall", state.wallSelection)],
-    [t("ceiling"), c.effectiveCeiling, selectedMaterialName("ceiling", state.ceilingSelection)]
+    [t("floor"), c.primaryFloor, selectedMaterialName("floor", state.floorSelection), coefficientLine("floor", state.floorSelection)],
+    [t("wall"), c.primaryWall, selectedMaterialName("wall", state.wallSelection), coefficientLine("wall", state.wallSelection)],
+    [t("door"), n(state.doorArea), selectedMaterialName("door", state.doorSelection), coefficientLine("door", state.doorSelection)],
+    [t("window"), n(state.windowArea), selectedMaterialName("window", state.windowSelection), coefficientLine("window", state.windowSelection)],
+    [t("ceiling"), c.effectiveCeiling, selectedMaterialName("ceiling", state.ceilingSelection), coefficientLine("ceiling", state.ceilingSelection)]
   ];
 
-  if (n(state.doorArea) > 0) rows.push([t("door"), n(state.doorArea), selectedMaterialName("door", state.doorSelection)]);
-  if (n(state.windowArea) > 0) rows.push([t("window"), n(state.windowArea), selectedMaterialName("window", state.windowSelection)]);
-
   state.extraFloorRows.forEach((row, index) => {
-    if (n(row.area) > 0) rows.push([`${t("extraFloor")} ${index + 1}`, n(row.area), selectedMaterialName("floor", row.selection)]);
+    if (n(row.area) > 0) rows.push([`${t("extraFloor")} ${index + 1}`, n(row.area), selectedMaterialName("floor", row.selection), coefficientLine("floor", row.selection)]);
   });
   state.extraWallRows.forEach((row, index) => {
-    if (n(row.area) > 0) rows.push([`${t("extraWall")} ${index + 1}`, n(row.area), selectedMaterialName("wall", row.selection)]);
+    if (n(row.area) > 0) rows.push([`${t("extraWall")} ${index + 1}`, n(row.area), selectedMaterialName("wall", row.selection), coefficientLine("wall", row.selection)]);
   });
   state.extraCeilingRows.forEach((row, index) => {
-    if (n(row.area) > 0) rows.push([`${t("extraCeiling")} ${index + 1}`, n(row.area), selectedMaterialName("ceiling", row.selection)]);
+    if (n(row.area) > 0) rows.push([`${t("extraCeiling")} ${index + 1}`, n(row.area), selectedMaterialName("ceiling", row.selection), coefficientLine("ceiling", row.selection)]);
   });
   state.extraAbsorberRows.forEach((row, index) => {
-    if (n(row.area) > 0) rows.push([`${t("absorbers")} ${index + 1}`, n(row.area), selectedMaterialName("ceiling", row.selection)]);
+    if (n(row.area) > 0) rows.push([`${t("absorbers")} ${index + 1}`, n(row.area), selectedMaterialName("ceiling", row.selection), coefficientLine("ceiling", row.selection)]);
   });
 
-  return `<table class="report-table report-materials">
-    <tr><th>${state.language === "en" ? "Surface" : "ზედაპირი"}</th><th>${t("area")}</th><th>${t("materials")}</th></tr>
-    ${rows.map(row => `<tr><td>${esc(row[0])}</td><td>${fmt(row[1])} m²</td><td>${esc(row[2])}</td></tr>`).join("")}
-  </table>`;
+  return rows
+    .filter(row => row[1] > 0 || [t("floor"), t("wall"), t("ceiling")].includes(row[0]))
+    .map(row => `
+      <div class="pdf-material-row">
+        <div class="pdf-material-top">
+          <strong>${esc(row[0])}</strong>
+          <span>${fmt(row[1])} m²</span>
+          <em>${esc(row[2])}</em>
+        </div>
+        <div class="pdf-coefficients">${esc(row[3] || "")}</div>
+      </div>
+    `).join("");
+}
+
+function reportValue(label, value, unit = "") {
+  return `<div class="pdf-field"><span>${label}</span><strong>${value}</strong><em>${unit}</em></div>`;
 }
 
 function buildReport() {
@@ -789,43 +807,62 @@ function buildReport() {
     : "ეს აკუსტიკის ანგარიში შექმნილია კალკულატორში შეყვანილი მონაცემებით. გამოთვლა ეფუძნება ოთახის მოცულობას, ზედაპირების ფართობებს და არჩეული მასალების შთანთქმის კოეფიციენტებს.";
   const report = document.getElementById("print-report");
   report.innerHTML = `
-    <article class="report-page">
-      <header class="report-header">
-        <div>
-          <h2>${t("report")}</h2>
-          <p>${esc(project)}</p>
-        </div>
-        <div class="report-logo">KA</div>
+    <article class="report-page intro-page">
+      <header class="pdf-brand">
+        <strong>Kaki's Acoustics</strong>
+        <span>Acoustic calculator</span>
       </header>
+      <h1>${state.language === "en" ? "Kaki's Acoustics report" : "Kaki's Acoustics ანგარიში"}</h1>
       <p class="report-intro">${intro}</p>
-      <div class="report-room">
-        <div class="report-image"><img src="assets/${shapeAssets[state.shape]}" alt=""></div>
-        <div class="report-grid">
-          <div class="report-metric"><span>${t("ceilingShape")}</span><strong>${t("shapes")[state.shape]}</strong></div>
-          <div class="report-metric"><span>${t("length")}</span><strong>${fmt(n(state.length))} m</strong></div>
-          <div class="report-metric"><span>${t("width")}</span><strong>${fmt(n(state.width))} m</strong></div>
-          <div class="report-metric"><span>${state.shape === 1 || state.shape === 2 ? t("height1") : t("height")}</span><strong>${fmt(n(state.height1))} m</strong></div>
-          ${state.shape === 1 || state.shape === 2 ? `<div class="report-metric"><span>${t("height2")}</span><strong>${fmt(n(state.height2))} m</strong></div>` : ""}
+    </article>
+
+    <article class="report-page calculation-page">
+      <div class="pdf-top-grid">
+        <div class="pdf-room-image"><img src="assets/${shapeAssets[state.shape]}" alt=""></div>
+        <div class="pdf-inputs">
+          ${reportValue(t("project"), esc(project))}
+          ${state.shape === 3 ? reportValue(t("volume"), fmt(volume()), "m³") : reportValue(t("length"), fmt(n(state.length)), "m")}
+          ${state.shape === 3 ? reportValue(t("floorArea"), fmt(floorArea()), "m²") : reportValue(t("width"), fmt(n(state.width)), "m")}
+          ${state.shape === 3 ? reportValue(t("wallArea"), fmt(wallArea()), "m²") : reportValue(state.shape === 1 || state.shape === 2 ? t("height1") : t("height"), fmt(n(state.height1)), "m")}
+          ${state.shape === 1 || state.shape === 2 ? reportValue(t("height2"), fmt(n(state.height2)), "m") : ""}
+          ${reportValue(t("doorArea"), fmt(n(state.doorArea)), "m²")}
+          ${reportValue(t("windowArea"), fmt(n(state.windowArea)), "m²")}
+        </div>
+        <div class="pdf-inputs totals">
+          ${reportValue(t("totalFloor"), fmt(floorArea()), "m²")}
+          ${reportValue(t("totalWall"), fmt(wallArea()), "m²")}
+          ${reportValue(t("totalCeiling"), fmt(ceilingArea()), "m²")}
+          ${reportValue(t("volume"), fmt(volume()), "m³")}
         </div>
       </div>
-      <div class="report-grid">
-        <div class="report-metric"><span>${t("totalFloor")}</span><strong>${fmt(floorArea())} m²</strong></div>
-        <div class="report-metric"><span>${t("totalWall")}</span><strong>${fmt(wallArea())} m²</strong></div>
-        <div class="report-metric"><span>${t("totalCeiling")}</span><strong>${fmt(ceilingArea())} m²</strong></div>
-        <div class="report-metric"><span>${t("volume")}</span><strong>${fmt(volume())} m³</strong></div>
-      </div>
-      <h3>${t("materials")}</h3>
-      ${reportMaterialRows(c)}
-      <h3>${t("reverberation")}</h3>
-      ${reportTable(t("calculation"), c.reverberation, suffix)}
+      <h2>${t("calculation")}</h2>
+      <div class="pdf-materials">${reportCalculationRows(c)}</div>
+      <p class="pdf-type">${state.language === "en" ? "Calculation type 1" : "გამოთვლის ტიპი 1"}</p>
+      ${reportTable(t("reverberation"), c.reverberation, suffix)}
       ${chartSvg(c.reverberation, state.alternativeEnabled ? c.altReverberation : null)}
-      <div class="result-summary">
-        <div class="summary-box"><span>${t("average125")}</span><strong>${fmt(average(c.reverberation))} ${suffix}</strong></div>
-        <div class="summary-box"><span>${t("average250")}</span><strong>${fmt(average(c.reverberation.slice(1)))} ${suffix}</strong></div>
-      </div>
       ${state.alternativeEnabled ? `<h3>${t("comparison")}</h3>${comparisonSummary(c)}${reportTable(t("comparison"), c.altReverberation, suffix)}` : ""}
-      <h3>${t("absorption")}</h3>
-      ${reportTable(t("calculation"), c.absorption, "m² Sab")}
+    </article>
+
+    <article class="report-page explanation-page">
+      <header class="pdf-brand">
+        <strong>Kaki's Acoustics</strong>
+        <span>Acoustic calculator</span>
+      </header>
+      <h1>${state.language === "en" ? "Kaki's Acoustics report" : "Kaki's Acoustics ანგარიში"}</h1>
+      <div class="pdf-explainer">
+        <section>
+          <h2>${state.language === "en" ? "Reverberation time" : "რევერბერაციის დრო"}</h2>
+          <p>${state.language === "en" ? "Reverberation time is the time, measured in seconds, that passes between a sound source stopping and the sound dying out. More accurately, it is the number of seconds it takes the sound level to drop 60 dB after the sound source has ceased." : "რევერბერაციის დრო არის დრო წამებში, რომელიც გადის ხმის წყაროს შეჩერებიდან ხმის ჩაქრობამდე. უფრო ზუსტად, ეს არის დრო, რომელიც საჭიროა ხმის დონის 60 dB-ით დასაკლებად."}</p>
+          <h2>${state.language === "en" ? "Sound absorption value" : "ხმის შთანთქმის მნიშვნელობა"}</h2>
+          <p>${state.language === "en" ? "The efficiency of a sound absorbing material is expressed by its sound absorption value. The value is measured across frequency ranges and also depends on how the material is installed." : "ხმის შთანთქმის მასალის ეფექტურობა გამოიხატება შთანთქმის კოეფიციენტით. მნიშვნელობა იზომება სიხშირეების მიხედვით და დამოკიდებულია მასალის მონტაჟის ტიპზეც."}</p>
+        </section>
+        <section>
+          <h2>${state.language === "en" ? "Absorption and absorption area" : "შთანთქმა და შთანთქმის ფართობი"}</h2>
+          <p>${state.language === "en" ? "The sound absorbing effect depends partly on how effective the material is and partly on how many square metres are installed. Greater absorption lowers reverberation time in the room." : "ხმის შთანთქმის ეფექტი დამოკიდებულია მასალის თვისებებზე და გამოყენებულ ფართობზე. რაც უფრო დიდია შთანთქმა, მით უფრო დაბალია რევერბერაციის დრო ოთახში."}</p>
+          <h2>${state.language === "en" ? "Sabine's formula" : "საბინის ფორმულა"}</h2>
+          <p>${state.language === "en" ? "Acoustic calculations are based on Sabine's formula: reverberation time is proportional to room volume and inversely proportional to total absorption." : "აკუსტიკური გამოთვლები ეფუძნება საბინის ფორმულას: რევერბერაციის დრო პროპორციულია ოთახის მოცულობისა და უკუპროპორციულია სრული შთანთქმის."}</p>
+        </section>
+      </div>
     </article>
   `;
 }

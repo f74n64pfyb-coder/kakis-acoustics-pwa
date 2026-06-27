@@ -615,7 +615,7 @@ function renderAlternative() {
   panel.appendChild(renderMaterialBlock(t("comparisonCeiling"), "ceiling", "alternativeCeilingSelection", c.altEffectiveCeiling, null, null, "altEffectiveCeiling"));
   const toggle = document.createElement("label");
   toggle.className = "switch-row comparison-switch";
-  toggle.innerHTML = `<input type="checkbox" ${state.alternativeAbsorberEnabled ? "checked" : ""}><span>${t("comparisonAbsorber")}</span>`;
+  toggle.innerHTML = `<input type="checkbox" ${state.alternativeAbsorberEnabled ? "checked" : ""}><i aria-hidden="true"></i><span>${t("comparisonAbsorber")}</span>`;
   toggle.querySelector("input").onchange = e => setState("alternativeAbsorberEnabled", e.target.checked);
   panel.appendChild(toggle);
   if (state.alternativeAbsorberEnabled) {

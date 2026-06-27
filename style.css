@@ -982,6 +982,158 @@ td:first-child, th:first-child {
   .number-field { grid-template-columns: 1fr; }
 }
 
+@media (max-width: 430px) {
+  body {
+    font-size: 14px;
+  }
+
+  .app-shell {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .topbar {
+    grid-template-columns: auto 1fr auto;
+    gap: 7px;
+    padding: 9px 10px 8px;
+  }
+
+  .segmented button {
+    min-width: 42px;
+    padding: 7px 8px;
+  }
+
+  h1 {
+    font-size: 16px;
+    max-width: 42vw;
+  }
+
+  .toolbar-actions {
+    gap: 6px;
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
+  }
+
+  main {
+    gap: 12px;
+    padding: 10px 8px;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 9px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  h3 {
+    font-size: 15px;
+  }
+
+  .hint,
+  .warning {
+    font-size: 13px;
+    padding: 10px;
+  }
+
+  .choice-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .choice-grid.two {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .choice-grid button {
+    min-height: 46px;
+  }
+
+  .diagram-card {
+    min-height: 160px;
+    margin: 12px 0;
+  }
+
+  .diagram-card img {
+    max-height: 190px;
+  }
+
+  .number-field {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .number-wrap {
+    grid-template-columns: minmax(0, 1fr) 32px;
+  }
+
+  .metrics div,
+  .material-row,
+  .result-summary {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .area {
+    text-align: left;
+    padding-bottom: 0;
+  }
+
+  .material-block {
+    padding: 12px 0;
+  }
+
+  .material-picker {
+    min-width: 0;
+  }
+
+  .subpanel {
+    padding: 10px;
+  }
+
+  .comparison-panel {
+    padding: 12px;
+  }
+
+  .comparison-panel .material-row {
+    grid-template-columns: 1fr;
+  }
+
+  .table-wrap {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0;
+  }
+
+  table {
+    min-width: 520px;
+    font-size: 12px;
+  }
+
+  th,
+  td {
+    padding: 8px 6px;
+  }
+
+  .chart {
+    height: 210px;
+  }
+
+  .summary-box strong {
+    font-size: 18px;
+  }
+
+  .picker-sheet {
+    max-height: 84vh;
+  }
+}
+
 @media print {
   @page { size: A4; margin: 10mm; }
   body { background: #fff; }

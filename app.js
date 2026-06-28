@@ -1,5 +1,6 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const freqs = ["125", "250", "500", "1000", "2000", "4000"];
+const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
+const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
 
 const text = {
@@ -73,7 +74,7 @@ const text = {
     improvementSmall: "მცირე გაუმჯობესება",
     noChange: "შედარებაში მნიშვნელოვანი ცვლილება არ ჩანს",
     worse: "შედარებით ვარიანტში რევერბერაცია იზრდება",
-    change: "250-4000 ჰც საშუალო ცვლილება",
+    change: "250-8000 ჰც საშუალო ცვლილება",
     report: "აკუსტიკის ანგარიში",
     printHint: "PDF-ის შესანახად აირჩიე Share/Print და Save to Files."
     ,
@@ -152,7 +153,7 @@ const text = {
     improvementSmall: "Small improvement",
     noChange: "No meaningful change in the comparison",
     worse: "The comparison option increases reverberation",
-    change: "Average change from 250-4000 Hz",
+    change: "Average change from 250-8000 Hz",
     report: "Acoustics report",
     printHint: "To save as PDF choose Share/Print and Save to Files."
     ,
@@ -193,7 +194,7 @@ const defaults = {
   alternativeAbsorberArea: "",
   alternativeAbsorberSelection: -1,
   customName: "",
-  customValues: ["", "", "", "", "", ""],
+  customValues: ["", "", "", "", "", "", "", ""],
   openExtraPanels: []
 };
 
@@ -293,12 +294,24 @@ function sanitizeName(name) {
 }
 
 function materialOptions(kind) {
-  const custom = {name: state.customName || (state.language === "en" ? "Custom material" : "საკუთარი მასალა"), values: state.customValues.map(n)};
+  const customValues = freqs.map((_, index) => n(state.customValues[index]));
+  const custom = {name: state.customName || (state.language === "en" ? "Custom material" : "საკუთარი მასალა"), values: customValues};
   return [...MATERIALS[kind], custom];
 }
 
 function average(values) {
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+}
+
+function averageFrom(values, startFreq) {
+  const index = freqs.indexOf(String(startFreq));
+  return average(index >= 0 ? values.slice(index) : values);
+}
+
+function averageRange(values, startFreq, endFreq) {
+  const start = freqs.indexOf(String(startFreq));
+  const end = freqs.indexOf(String(endFreq));
+  return average(start >= 0 && end >= start ? values.slice(start, end + 1) : values);
 }
 
 function averageHeight() {
@@ -347,9 +360,41 @@ function rowContributions(rows, totalArea) {
   return out;
 }
 
+function clampCoefficient(value) {
+  return Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
+}
+
+function extrapolatedCoefficient(values, targetFreq) {
+  const known = sourceFreqs.map((freq, index) => ({freq: Number(freq), value: n(values[index])}));
+  if (targetFreq <= known[0].freq) {
+    const a = known[0];
+    const b = known[1];
+    const slope = (b.value - a.value) / (Math.log2(b.freq) - Math.log2(a.freq));
+    return clampCoefficient(a.value + slope * (Math.log2(targetFreq) - Math.log2(a.freq)));
+  }
+  if (targetFreq >= known[known.length - 1].freq) {
+    const a = known[known.length - 2];
+    const b = known[known.length - 1];
+    const slope = (b.value - a.value) / (Math.log2(b.freq) - Math.log2(a.freq));
+    return clampCoefficient(b.value + slope * (Math.log2(targetFreq) - Math.log2(b.freq)));
+  }
+  const exact = sourceFreqs.indexOf(String(targetFreq));
+  return clampCoefficient(exact >= 0 ? values[exact] : 0);
+}
+
+function coefficientAt(values, index) {
+  if (!values) return 0;
+  if (values.length === freqs.length) return clampCoefficient(n(values[index]));
+  return extrapolatedCoefficient(values, Number(freqs[index]));
+}
+
+function expandedCoefficients(values) {
+  return freqs.map((_, index) => coefficientAt(values, index));
+}
+
 function coeff(kind, selection, index) {
   const arr = materialOptions(kind);
-  return arr[selection]?.values?.[index] ?? 0;
+  return coefficientAt(arr[selection]?.values, index);
 }
 
 function computed() {
@@ -598,9 +643,9 @@ function renderMaterials() {
 
 function renderCoefficients() {
   const rows = [];
-  if (state.ceilingSelection >= 0) rows.push([t("ceiling"), materialOptions("ceiling")[state.ceilingSelection]?.values || []]);
+  if (state.ceilingSelection >= 0) rows.push([t("ceiling"), expandedCoefficients(materialOptions("ceiling")[state.ceilingSelection]?.values || [])]);
   state.extraAbsorberRows.forEach((r, i) => {
-    if (r.selection >= 0) rows.push([`${t("absorbers")} ${i + 1}`, materialOptions("ceiling")[r.selection]?.values || []]);
+    if (r.selection >= 0) rows.push([`${t("absorbers")} ${i + 1}`, expandedCoefficients(materialOptions("ceiling")[r.selection]?.values || [])]);
   });
   document.getElementById("coefficients-table").innerHTML = rows.length ? rows.map(([name, values]) => `
     <div class="table-wrap"><table><tr><th>${name}</th>${freqs.map(f => `<th>${f} Hz</th>`).join("")}</tr><tr><td>α</td>${values.map(v => `<td>${fmt(v)}</td>`).join("")}</tr></table></div>
@@ -695,7 +740,7 @@ function renderComputedOnly() {
 function resultTable(title, values, suffix) {
   return `<div class="table-wrap"><table>
     <tr><th>${title}</th>${freqs.map(f => `<th>${f} Hz</th>`).join("")}<th>${t("average125")}</th><th>${t("average250")}</th></tr>
-    <tr><td></td>${values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(average(values))}</td><td>${fmt(average(values.slice(1)))}</td></tr>
+    <tr><td></td>${values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(averageFrom(values, 125))}</td><td>${fmt(averageFrom(values, 250))}</td></tr>
   </table></div>`;
 }
 
@@ -709,8 +754,8 @@ function renderResults(c) {
     ${resultTable(t("calculation"), values, suffix)}
     ${chartSvg(values, state.alternativeEnabled ? alt : null)}
     <div class="result-summary">
-      <div class="summary-box"><span>${t("average125")}</span><strong>${fmt(average(values))} ${suffix}</strong></div>
-      <div class="summary-box"><span>${t("average250")}</span><strong>${fmt(average(values.slice(1)))} ${suffix}</strong></div>
+      <div class="summary-box"><span>${t("average125")}</span><strong>${fmt(averageFrom(values, 125))} ${suffix}</strong></div>
+      <div class="summary-box"><span>${t("average250")}</span><strong>${fmt(averageFrom(values, 250))} ${suffix}</strong></div>
     </div>
     ${state.alternativeEnabled && state.resultType === 0 ? comparisonSummary(c) : ""}
     ${state.alternativeEnabled ? resultTable(t("comparison"), alt, suffix) : ""}
@@ -722,8 +767,9 @@ function chartSvg(primary, alternative) {
   const max = Math.max(0.1, ...all);
   const min = Math.min(0, ...all);
   const range = max - min || 1;
+  const step = freqs.length > 1 ? 522 / (freqs.length - 1) : 0;
   const points = values => values.map((v, i) => {
-    const x = 48 + i * 98;
+    const x = 48 + i * step;
     const y = 205 - ((v - min) / range) * 165;
     return [x, y];
   });
@@ -733,7 +779,7 @@ function chartSvg(primary, alternative) {
   return `<svg class="chart" viewBox="0 0 600 250" role="img">
     <line x1="42" y1="205" x2="570" y2="205" stroke="#d5d8de"/>
     <line x1="42" y1="35" x2="42" y2="205" stroke="#d5d8de"/>
-    ${freqs.map((f, i) => `<text x="${48 + i * 98}" y="230" font-size="13" text-anchor="middle" fill="#666">${f}</text>`).join("")}
+    ${freqs.map((f, i) => `<text x="${48 + i * step}" y="230" font-size="12" text-anchor="middle" fill="#666">${f}</text>`).join("")}
     <path d="${line(p1)}" fill="none" stroke="#f39a00" stroke-width="4" stroke-dasharray="10 8"/>
     ${p1.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="7" fill="#fff" stroke="#f39a00" stroke-width="4"/>`).join("")}
     ${alternative ? `<path d="${line(p2)}" fill="none" stroke="#10b9c6" stroke-width="4"/>${p2.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="7" fill="#fff" stroke="#10b9c6" stroke-width="4"/>`).join("")}` : ""}
@@ -741,8 +787,8 @@ function chartSvg(primary, alternative) {
 }
 
 function comparisonSummary(c) {
-  const base = average(c.reverberation.slice(1));
-  const alt = average(c.altReverberation.slice(1));
+  const base = averageRange(c.reverberation, 250, 8000);
+  const alt = averageRange(c.altReverberation, 250, 8000);
   const diff = base - alt;
   const percent = base === 0 ? 0 : diff / base * 100;
   const abs = Math.abs(percent);
@@ -752,8 +798,9 @@ function comparisonSummary(c) {
   return `<div class="comparison-summary ${cls}">
     <strong>${title}</strong>
     <p>${t("change")}: ${fmt(Math.abs(diff))} ${state.language === "en" ? "sec" : "წმ"} (${fmt(Math.abs(percent))}%)</p>
-    <div class="chips">${freqs.slice(1).map((f, i) => {
-      const d = c.reverberation[i + 1] - c.altReverberation[i + 1];
+    <div class="chips">${freqs.slice(freqs.indexOf("250")).map((f, i) => {
+      const index = i + freqs.indexOf("250");
+      const d = c.reverberation[index] - c.altReverberation[index];
       return `<div class="chip"><span>${f} Hz</span><br><strong>${d >= 0 ? "-" : "+"}${fmt(Math.abs(d))}</strong></div>`;
     }).join("")}</div>
   </div>`;
@@ -762,7 +809,7 @@ function comparisonSummary(c) {
 function reportTable(title, values, suffix) {
   return `<table class="report-table">
     <tr><th>${title}</th>${freqs.map(f => `<th>${f} Hz</th>`).join("")}<th>${t("average125")}</th><th>${t("average250")}</th></tr>
-    <tr><td></td>${values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(average(values))}</td><td>${fmt(average(values.slice(1)))}</td></tr>
+    <tr><td></td>${values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(averageFrom(values, 125))}</td><td>${fmt(averageFrom(values, 250))}</td></tr>
   </table>`;
 }
 
@@ -770,7 +817,7 @@ function coefficientLine(kind, selection) {
   if (selection < 0) return "";
   const material = materialOptions(kind)[selection];
   if (!material) return "";
-  return material.values.map((value, index) => `${freqs[index]}hz: ${fmt(value)}`).join(" |");
+  return expandedCoefficients(material.values).map((value, index) => `${freqs[index]}hz: ${fmt(value)}`).join(" |");
 }
 
 function selectedMaterialName(kind, selection) {

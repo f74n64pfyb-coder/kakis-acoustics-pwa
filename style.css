@@ -561,7 +561,7 @@ input:focus, select:focus {
 
 table {
   width: 100%;
-  min-width: 640px;
+  min-width: 820px;
   border-collapse: collapse;
   font-size: 14px;
 }
@@ -847,8 +847,8 @@ td:first-child, th:first-child {
 .report-table td,
 .report-table th {
   border: 1px solid #d8dce2;
-  padding: 8px;
-  font-size: 12px;
+  padding: 6px 4px;
+  font-size: 10px;
 }
 
 .report-materials td:last-child,
@@ -1222,7 +1222,7 @@ td:first-child, th:first-child {
   }
 
   table {
-    min-width: 520px;
+    min-width: 760px;
     font-size: 12px;
   }
 
@@ -1449,8 +1449,8 @@ td:first-child, th:first-child {
   }
   .report-table td,
   .report-table th {
-    padding: 4px 5px;
-    font-size: 10px;
+    padding: 3px 4px;
+    font-size: 8.5px;
   }
   .chart {
     height: 38mm;

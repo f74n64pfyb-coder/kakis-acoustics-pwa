@@ -1,4 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
+const APP_VERSION = "25";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -871,21 +872,14 @@ function buildReport() {
   const c = computed();
   const suffix = state.language === "en" ? "sec" : "წმ";
   const project = state.project.trim() || "Kaki's Acoustics";
-  const intro = state.language === "en"
-    ? "This acoustics report is generated from the values entered in the calculator. The calculations are based on room volume, surface areas and the selected absorption coefficients."
-    : "ეს აკუსტიკის ანგარიში შექმნილია კალკულატორში შეყვანილი მონაცემებით. გამოთვლა ეფუძნება ოთახის მოცულობას, ზედაპირების ფართობებს და არჩეული მასალების შთანთქმის კოეფიციენტებს.";
   const report = document.getElementById("print-report");
   report.innerHTML = `
-    <article class="report-page intro-page">
+    <article class="report-page calculation-page">
       <header class="pdf-brand">
         <strong>Kaki's Acoustics</strong>
         <span>Acoustic calculator</span>
       </header>
-      <h1>${state.language === "en" ? "Kaki's Acoustics report" : "Kaki's Acoustics ანგარიში"}</h1>
-      <p class="report-intro">${intro}</p>
-    </article>
-
-    <article class="report-page calculation-page">
+      <h1>${state.language === "en" ? "Acoustics report" : "აკუსტიკის ანგარიში"}</h1>
       <div class="pdf-top-grid">
         <div class="pdf-room-image"><img src="assets/${shapeAssets[state.shape]}" alt=""></div>
         <div class="pdf-inputs">
@@ -1041,7 +1035,7 @@ document.getElementById("picker-backdrop").addEventListener("click", event => {
 });
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./service-worker.js").then(registration => {
+  navigator.serviceWorker.register(`./service-worker.js?v=${APP_VERSION}`).then(registration => {
     registration.update();
   });
   let refreshing = false;
@@ -1052,4 +1046,23 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-render();
+async function resetAppCacheIfRequested() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("reset-cache") !== "1") return false;
+  if ("serviceWorker" in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(registration => registration.unregister()));
+  }
+  if ("caches" in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(key => caches.delete(key)));
+  }
+  url.searchParams.delete("reset-cache");
+  url.searchParams.set("v", APP_VERSION);
+  window.location.replace(url.toString());
+  return true;
+}
+
+resetAppCacheIfRequested().then(resetting => {
+  if (!resetting) render();
+});

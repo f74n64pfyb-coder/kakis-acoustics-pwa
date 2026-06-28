@@ -1244,6 +1244,110 @@ td:first-child, th:first-child {
   }
 }
 
+@media (min-width: 760px) and (hover: hover) and (pointer: fine) {
+  body {
+    font-size: 15px;
+  }
+
+  .app-shell {
+    width: min(920px, 100%);
+  }
+
+  .topbar {
+    padding: 12px 22px 11px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  h2 {
+    font-size: 21px;
+  }
+
+  main {
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .card {
+    padding: 18px;
+  }
+
+  .choice-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .choice-grid.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 520px;
+  }
+
+  .diagram-card {
+    min-height: 260px;
+  }
+
+  .diagram-card img {
+    max-height: 300px;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .number-field {
+    grid-template-columns: minmax(120px, 1fr) minmax(140px, 0.85fr);
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .material-row {
+    grid-template-columns: minmax(0, 1fr) 96px;
+  }
+
+  .comparison-panel {
+    padding: 16px;
+  }
+
+  .table-wrap {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0;
+  }
+
+  .chart {
+    height: 300px;
+  }
+}
+
+@media (min-width: 1180px) and (hover: hover) and (pointer: fine) {
+  .app-shell {
+    width: min(1120px, 100%);
+  }
+
+  main {
+    padding: 22px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .diagram-card {
+    min-height: 300px;
+  }
+
+  .diagram-card img {
+    max-height: 340px;
+  }
+
+  .chart {
+    height: 340px;
+  }
+}
+
 @media print {
   @page { size: A4; margin: 10mm; }
   body { background: #fff; }

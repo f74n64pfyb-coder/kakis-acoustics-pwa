@@ -78,12 +78,14 @@ h2 {
   font-size: 19px;
   font-weight: 650;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 h3 {
   margin: 18px 0 10px;
   font-size: 16px;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 main {
@@ -180,6 +182,7 @@ summary {
   cursor: pointer;
   font-weight: 600;
   font-size: 16px;
+  overflow-wrap: anywhere;
 }
 
 .manual-list {
@@ -196,6 +199,7 @@ summary {
   gap: 7px;
   font-weight: 500;
   font-size: 15px;
+  min-width: 0;
 }
 
 .field.full { margin-bottom: 16px; }
@@ -359,6 +363,8 @@ input:focus, select:focus {
   display: grid;
   gap: 8px;
   font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .area {
@@ -476,6 +482,7 @@ input:focus, select:focus {
   max-width: 100%;
   cursor: pointer;
   position: relative;
+  overflow-wrap: anywhere;
 }
 
 .switch-row input {
@@ -838,6 +845,7 @@ td:first-child, th:first-child {
   width: 100%;
   min-width: 0;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .report-table th {
@@ -849,6 +857,7 @@ td:first-child, th:first-child {
   border: 1px solid #d8dce2;
   padding: 6px 4px;
   font-size: 10px;
+  overflow-wrap: anywhere;
 }
 
 .report-materials td:last-child,

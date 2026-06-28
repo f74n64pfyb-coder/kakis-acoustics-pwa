@@ -938,6 +938,7 @@ function exportPdf() {
   buildReport();
   document.body.classList.add("printing");
   setTimeout(() => window.print(), 50);
+  setTimeout(() => document.body.classList.remove("printing"), 2000);
 }
 
 function clearAll() {

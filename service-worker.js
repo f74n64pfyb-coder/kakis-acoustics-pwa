@@ -1,10 +1,10 @@
-const CACHE_NAME = "kakis-acoustics-v20";
+const CACHE_NAME = "kakis-acoustics-v21";
 const ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=20",
-  "./materials.js?v=20",
-  "./app.js?v=20",
+  "./style.css?v=21",
+  "./materials.js?v=21",
+  "./app.js?v=21",
   "./manifest.json",
   "./assets/app-icon.png",
   "./assets/shape_flat.png",
@@ -27,6 +27,16 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put("./index.html", copy));
+        return response;
+      }).catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;

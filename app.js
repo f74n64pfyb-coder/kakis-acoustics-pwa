@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "28";
+const APP_VERSION = "29";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -196,6 +196,7 @@ const defaults = {
   alternativeAbsorberSelection: -1,
   customName: "",
   customValues: ["", "", "", "", "", "", "", ""],
+  customMaterials: {},
   openExtraPanels: []
 };
 
@@ -204,7 +205,8 @@ let activePicker = null;
 
 function loadState() {
   try {
-    return {...defaults, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")};
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    return {...defaults, ...saved, customMaterials: saved.customMaterials || {}};
   } catch {
     return {...defaults};
   }
@@ -295,9 +297,52 @@ function sanitizeName(name) {
 }
 
 function materialOptions(kind) {
-  const customValues = freqs.map((_, index) => n(state.customValues[index]));
-  const custom = {name: state.customName || (state.language === "en" ? "Custom material" : "საკუთარი მასალა"), values: customValues};
+  const custom = {name: state.language === "en" ? "User defined" : "საკუთარი მასალა", values: freqs.map(() => 0), custom: true};
   return [...MATERIALS[kind], custom, ...(window.STANDARD_ABSORPTION_MATERIALS || [])];
+}
+
+function customIndex(kind) {
+  return MATERIALS[kind].length;
+}
+
+function isCustomSelection(kind, selection) {
+  return Number(selection) === customIndex(kind);
+}
+
+function emptyCustomValues() {
+  return freqs.map(() => "");
+}
+
+function customData(source) {
+  if (typeof source === "string") {
+    state.customMaterials = state.customMaterials || {};
+    if (!state.customMaterials[source]) {
+      state.customMaterials[source] = {
+        name: state.customName || "",
+        values: [...(state.customValues || emptyCustomValues())]
+      };
+    }
+    state.customMaterials[source].values = freqs.map((_, index) => state.customMaterials[source].values?.[index] ?? "");
+    return state.customMaterials[source];
+  }
+  if (source && typeof source === "object") {
+    if (!source.customValues) source.customValues = emptyCustomValues();
+    source.customValues = freqs.map((_, index) => source.customValues?.[index] ?? "");
+    return {name: source.customName || "", values: source.customValues};
+  }
+  return {name: state.customName || "", values: state.customValues || emptyCustomValues()};
+}
+
+function materialAt(kind, selection, source) {
+  if (selection < 0) return null;
+  if (isCustomSelection(kind, selection)) {
+    const data = customData(source);
+    return {
+      name: data.name || (state.language === "en" ? "User defined" : "საკუთარი მასალა"),
+      values: freqs.map((_, index) => n(data.values[index]))
+    };
+  }
+  return materialOptions(kind)[selection] || null;
 }
 
 function average(values) {
@@ -356,7 +401,7 @@ function rowContributions(rows, totalArea) {
   rows.forEach(row => {
     const area = Math.min(Math.max(0, n(row.area)), remaining);
     remaining -= area;
-    if (area > 0) out.push({area, selection: Number(row.selection)});
+    if (area > 0) out.push({...row, area, selection: Number(row.selection)});
   });
   return out;
 }
@@ -393,9 +438,8 @@ function expandedCoefficients(values) {
   return freqs.map((_, index) => coefficientAt(values, index));
 }
 
-function coeff(kind, selection, index) {
-  const arr = materialOptions(kind);
-  return coefficientAt(arr[selection]?.values, index);
+function coeff(kind, selection, index, source) {
+  return coefficientAt(materialAt(kind, selection, source)?.values, index);
 }
 
 function computed() {
@@ -408,29 +452,29 @@ function computed() {
   const primaryWall = Math.max(0, wallArea() - wallExtra.reduce((a, r) => a + r.area, 0));
   const effectiveCeiling = Math.max(0, ceilingArea() - absorberArea - ceilingExtra.reduce((a, r) => a + r.area, 0));
   const absorption = freqs.map((_, i) => {
-    let total = primaryFloor * coeff("floor", state.floorSelection, i);
-    total += primaryWall * coeff("wall", state.wallSelection, i);
-    total += n(state.doorArea) * coeff("door", state.doorSelection, i);
-    total += n(state.windowArea) * coeff("window", state.windowSelection, i);
-    total += effectiveCeiling * coeff("ceiling", state.ceilingSelection, i);
-    floorExtra.forEach(r => total += r.area * coeff("floor", r.selection, i));
-    wallExtra.forEach(r => total += r.area * coeff("wall", r.selection, i));
-    ceilingExtra.forEach(r => total += r.area * coeff("ceiling", r.selection, i));
-    absorber.forEach(r => total += r.area * coeff("ceiling", r.selection, i));
+    let total = primaryFloor * coeff("floor", state.floorSelection, i, "floorSelection");
+    total += primaryWall * coeff("wall", state.wallSelection, i, "wallSelection");
+    total += n(state.doorArea) * coeff("door", state.doorSelection, i, "doorSelection");
+    total += n(state.windowArea) * coeff("window", state.windowSelection, i, "windowSelection");
+    total += effectiveCeiling * coeff("ceiling", state.ceilingSelection, i, "ceilingSelection");
+    floorExtra.forEach(r => total += r.area * coeff("floor", r.selection, i, r));
+    wallExtra.forEach(r => total += r.area * coeff("wall", r.selection, i, r));
+    ceilingExtra.forEach(r => total += r.area * coeff("ceiling", r.selection, i, r));
+    absorber.forEach(r => total += r.area * coeff("ceiling", r.selection, i, r));
     return total;
   });
   const reverberation = absorption.map(a => a === 0 ? 0 : Math.max(0.05, 0.16 * volume() / a));
   const altAbsorberArea = state.alternativeEnabled && state.alternativeAbsorberEnabled ? Math.min(n(state.alternativeAbsorberArea), ceilingArea()) : 0;
   const altEffectiveCeiling = Math.max(0, ceilingArea() - altAbsorberArea);
   const altAbsorption = freqs.map((_, i) => {
-    let total = primaryFloor * coeff("floor", state.floorSelection, i);
-    total += primaryWall * coeff("wall", state.wallSelection, i);
-    total += n(state.doorArea) * coeff("door", state.doorSelection, i);
-    total += n(state.windowArea) * coeff("window", state.windowSelection, i);
-    total += altEffectiveCeiling * coeff("ceiling", state.alternativeCeilingSelection, i);
-    total += altAbsorberArea * coeff("ceiling", state.alternativeAbsorberSelection, i);
-    floorExtra.forEach(r => total += r.area * coeff("floor", r.selection, i));
-    wallExtra.forEach(r => total += r.area * coeff("wall", r.selection, i));
+    let total = primaryFloor * coeff("floor", state.floorSelection, i, "floorSelection");
+    total += primaryWall * coeff("wall", state.wallSelection, i, "wallSelection");
+    total += n(state.doorArea) * coeff("door", state.doorSelection, i, "doorSelection");
+    total += n(state.windowArea) * coeff("window", state.windowSelection, i, "windowSelection");
+    total += altEffectiveCeiling * coeff("ceiling", state.alternativeCeilingSelection, i, "alternativeCeilingSelection");
+    total += altAbsorberArea * coeff("ceiling", state.alternativeAbsorberSelection, i, "alternativeAbsorberSelection");
+    floorExtra.forEach(r => total += r.area * coeff("floor", r.selection, i, r));
+    wallExtra.forEach(r => total += r.area * coeff("wall", r.selection, i, r));
     return total;
   });
   const altReverberation = altAbsorption.map(a => a === 0 ? 0 : Math.max(0.05, 0.16 * volume() / a));
@@ -475,7 +519,6 @@ function render() {
   renderDimensions();
   renderMaterials();
   renderAlternative();
-  renderCustom();
   renderComputedOnly();
 }
 
@@ -549,13 +592,62 @@ function renderDimensions() {
   box.appendChild(makeNumber(t("windowArea"), "windowArea", "m²"));
 }
 
-function materialPickerButton(kind, selection, onSelect) {
+function materialPickerButton(kind, selection, onSelect, source) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "material-picker";
-  button.innerHTML = `<span>${esc(selection >= 0 ? selectedMaterialName(kind, selection) : t("select"))}</span><b>›</b>`;
+  button.innerHTML = `<span>${esc(selection >= 0 ? selectedMaterialName(kind, selection, source) : t("select"))}</span><b>›</b>`;
   button.onclick = () => openMaterialPicker(kind, selection, onSelect);
   return button;
+}
+
+function renderInlineCustomEditor(kind, selection, source) {
+  if (!isCustomSelection(kind, selection)) return null;
+  const data = customData(source);
+  const editor = document.createElement("div");
+  editor.className = "custom-editor";
+
+  const nameLabel = document.createElement("label");
+  nameLabel.className = "field full custom-description";
+  nameLabel.innerHTML = `<span>${t("description")}</span>`;
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.autocomplete = "off";
+  nameInput.value = data.name || "";
+  nameInput.oninput = () => {
+    data.name = nameInput.value;
+    if (source && typeof source === "object") source.customName = nameInput.value;
+    saveState();
+    renderCoefficients();
+    renderComputedOnly();
+  };
+  nameLabel.appendChild(nameInput);
+  editor.appendChild(nameLabel);
+
+  const grid = document.createElement("div");
+  grid.className = "custom-coefficient-grid";
+  freqs.forEach((freq, index) => {
+    const label = document.createElement("label");
+    label.className = "custom-coefficient";
+    label.innerHTML = `<span>${freq} Hz</span>`;
+    const input = document.createElement("input");
+    input.inputMode = "decimal";
+    input.type = "text";
+    input.autocomplete = "off";
+    input.placeholder = "0";
+    input.value = data.values[index] ?? "";
+    input.oninput = () => {
+      data.values[index] = input.value.replace(/[^\d.,]/g, "");
+      if (source && typeof source === "object") source.customValues = data.values;
+      saveState();
+      renderCoefficients();
+      renderComputedOnly();
+    };
+    label.appendChild(input);
+    grid.appendChild(label);
+  });
+  editor.appendChild(grid);
+  return editor;
 }
 
 function renderMaterialBlock(title, kind, key, area, extraTitle, rowsKey, areaKey) {
@@ -565,13 +657,15 @@ function renderMaterialBlock(title, kind, key, area, extraTitle, rowsKey, areaKe
   row.className = "material-row";
   const label = document.createElement("label");
   label.textContent = title;
-  label.appendChild(materialPickerButton(kind, state[key], value => setState(key, value)));
+  label.appendChild(materialPickerButton(kind, state[key], value => setState(key, value), key));
   const areaEl = document.createElement("div");
   areaEl.className = "area";
   if (areaKey) areaEl.dataset.area = areaKey;
   areaEl.textContent = `${fmt(area)} m²`;
   row.append(label, areaEl);
   block.appendChild(row);
+  const customEditor = renderInlineCustomEditor(kind, state[key], key);
+  if (customEditor) block.appendChild(customEditor);
   if (rowsKey) block.appendChild(extraRows(extraTitle, kind, rowsKey));
   return block;
 }
@@ -602,7 +696,7 @@ function extraRows(title, kind, key) {
       state[key][index].selection = value;
       saveState();
       render();
-    });
+    }, item);
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "remove-btn";
@@ -613,6 +707,8 @@ function extraRows(title, kind, key) {
     };
     row.append(area, select, remove);
     list.appendChild(row);
+    const customEditor = renderInlineCustomEditor(kind, Number(item.selection ?? -1), item);
+    if (customEditor) list.appendChild(customEditor);
   });
   const add = document.createElement("button");
   add.type = "button";
@@ -644,9 +740,9 @@ function renderMaterials() {
 
 function renderCoefficients() {
   const rows = [];
-  if (state.ceilingSelection >= 0) rows.push([t("ceiling"), expandedCoefficients(materialOptions("ceiling")[state.ceilingSelection]?.values || [])]);
+  if (state.ceilingSelection >= 0) rows.push([t("ceiling"), expandedCoefficients(materialAt("ceiling", state.ceilingSelection, "ceilingSelection")?.values || [])]);
   state.extraAbsorberRows.forEach((r, i) => {
-    if (r.selection >= 0) rows.push([`${t("absorbers")} ${i + 1}`, expandedCoefficients(materialOptions("ceiling")[r.selection]?.values || [])]);
+    if (r.selection >= 0) rows.push([`${t("absorbers")} ${i + 1}`, expandedCoefficients(materialAt("ceiling", r.selection, r)?.values || [])]);
   });
   document.getElementById("coefficients-table").innerHTML = rows.length ? rows.map(([name, values]) => `
     <div class="table-wrap"><table><tr><th>${name}</th>${freqs.map(f => `<th>${f} Hz</th>`).join("")}</tr><tr><td>α</td>${values.map(v => `<td>${fmt(v)}</td>`).join("")}</tr></table></div>
@@ -671,29 +767,6 @@ function renderAlternative() {
     panel.appendChild(areaField);
     panel.appendChild(renderMaterialBlock(t("comparisonAbsorber"), "ceiling", "alternativeAbsorberSelection", c.altAbsorberArea, null, null, "altAbsorberArea"));
   }
-}
-
-function renderCustom() {
-  const name = document.getElementById("custom-name");
-  if (document.activeElement !== name) name.value = state.customName;
-  name.oninput = () => {
-    state.customName = name.value;
-    saveState();
-    renderComputedOnly();
-  };
-  const box = document.getElementById("custom-coefficients");
-  box.innerHTML = "";
-  freqs.forEach((freq, index) => {
-    const node = makeNumber(`${freq} Hz`, `custom-${index}`, "α");
-    const input = node.querySelector("input");
-    input.value = state.customValues[index] ?? "";
-    input.oninput = () => {
-      state.customValues[index] = input.value.replace(/[^\d.,]/g, "");
-      saveState();
-      renderComputedOnly();
-    };
-    box.appendChild(node);
-  });
 }
 
 function missingMaterials(c) {
@@ -735,6 +808,7 @@ function renderComputedOnly() {
   const missing = missingMaterials(c);
   warning.classList.toggle("hidden", missing.length === 0);
   warning.textContent = missing.length ? `${t("materialMissing")}: ${missing.join(", ")}. ${t("missingTail")}` : "";
+  renderCoefficients();
   renderResults(c);
 }
 
@@ -814,40 +888,40 @@ function reportTable(title, values, suffix) {
   </table>`;
 }
 
-function coefficientGrid(kind, selection) {
+function coefficientGrid(kind, selection, source) {
   if (selection < 0) return "";
-  const material = materialOptions(kind)[selection];
+  const material = materialAt(kind, selection, source);
   if (!material) return "";
   return `<div class="pdf-coefficient-grid">${expandedCoefficients(material.values).map((value, index) => `
     <span><b>${freqs[index]}hz</b><em>${fmt(value)}</em></span>
   `).join("")}</div>`;
 }
 
-function selectedMaterialName(kind, selection) {
-  const material = materialOptions(kind)[selection];
+function selectedMaterialName(kind, selection, source) {
+  const material = materialAt(kind, selection, source);
   return material ? sanitizeName(material.name) : t("select");
 }
 
 function reportCalculationRows(c) {
   const rows = [
-    [t("floor"), c.primaryFloor, selectedMaterialName("floor", state.floorSelection), coefficientGrid("floor", state.floorSelection)],
-    [t("wall"), c.primaryWall, selectedMaterialName("wall", state.wallSelection), coefficientGrid("wall", state.wallSelection)],
-    [t("door"), n(state.doorArea), selectedMaterialName("door", state.doorSelection), coefficientGrid("door", state.doorSelection)],
-    [t("window"), n(state.windowArea), selectedMaterialName("window", state.windowSelection), coefficientGrid("window", state.windowSelection)],
-    [t("ceiling"), c.effectiveCeiling, selectedMaterialName("ceiling", state.ceilingSelection), coefficientGrid("ceiling", state.ceilingSelection)]
+    [t("floor"), c.primaryFloor, selectedMaterialName("floor", state.floorSelection, "floorSelection"), coefficientGrid("floor", state.floorSelection, "floorSelection")],
+    [t("wall"), c.primaryWall, selectedMaterialName("wall", state.wallSelection, "wallSelection"), coefficientGrid("wall", state.wallSelection, "wallSelection")],
+    [t("door"), n(state.doorArea), selectedMaterialName("door", state.doorSelection, "doorSelection"), coefficientGrid("door", state.doorSelection, "doorSelection")],
+    [t("window"), n(state.windowArea), selectedMaterialName("window", state.windowSelection, "windowSelection"), coefficientGrid("window", state.windowSelection, "windowSelection")],
+    [t("ceiling"), c.effectiveCeiling, selectedMaterialName("ceiling", state.ceilingSelection, "ceilingSelection"), coefficientGrid("ceiling", state.ceilingSelection, "ceilingSelection")]
   ];
 
   state.extraFloorRows.forEach((row, index) => {
-    if (n(row.area) > 0) rows.push([`${t("extraFloor")} ${index + 1}`, n(row.area), selectedMaterialName("floor", row.selection), coefficientGrid("floor", row.selection)]);
+    if (n(row.area) > 0) rows.push([`${t("extraFloor")} ${index + 1}`, n(row.area), selectedMaterialName("floor", row.selection, row), coefficientGrid("floor", row.selection, row)]);
   });
   state.extraWallRows.forEach((row, index) => {
-    if (n(row.area) > 0) rows.push([`${t("extraWall")} ${index + 1}`, n(row.area), selectedMaterialName("wall", row.selection), coefficientGrid("wall", row.selection)]);
+    if (n(row.area) > 0) rows.push([`${t("extraWall")} ${index + 1}`, n(row.area), selectedMaterialName("wall", row.selection, row), coefficientGrid("wall", row.selection, row)]);
   });
   state.extraCeilingRows.forEach((row, index) => {
-    if (n(row.area) > 0) rows.push([`${t("extraCeiling")} ${index + 1}`, n(row.area), selectedMaterialName("ceiling", row.selection), coefficientGrid("ceiling", row.selection)]);
+    if (n(row.area) > 0) rows.push([`${t("extraCeiling")} ${index + 1}`, n(row.area), selectedMaterialName("ceiling", row.selection, row), coefficientGrid("ceiling", row.selection, row)]);
   });
   state.extraAbsorberRows.forEach((row, index) => {
-    if (n(row.area) > 0) rows.push([`${t("absorbers")} ${index + 1}`, n(row.area), selectedMaterialName("ceiling", row.selection), coefficientGrid("ceiling", row.selection)]);
+    if (n(row.area) > 0) rows.push([`${t("absorbers")} ${index + 1}`, n(row.area), selectedMaterialName("ceiling", row.selection, row), coefficientGrid("ceiling", row.selection, row)]);
   });
 
   return rows

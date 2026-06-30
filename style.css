@@ -422,6 +422,46 @@ input:focus, select:focus {
   background: var(--field);
 }
 
+.custom-editor {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #eef0f3;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.extra-list .custom-editor {
+  margin-top: -2px;
+}
+
+.custom-description {
+  margin: 0;
+}
+
+.custom-coefficient-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.custom-coefficient {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.custom-coefficient input {
+  min-height: 40px;
+  padding: 8px 10px;
+  text-align: right;
+}
+
 .small-btn,
 .remove-btn,
 .primary-btn {
@@ -1036,6 +1076,7 @@ td:first-child, th:first-child {
 @media (min-width: 680px) {
   .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .number-field { grid-template-columns: 1fr; }
+  .custom-coefficient-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 600px) {

@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "30";
+const APP_VERSION = "31";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -661,8 +661,16 @@ function renderMaterialBlock(title, kind, key, area, extraTitle, rowsKey, areaKe
   block.className = "material-block";
   const row = document.createElement("div");
   row.className = "material-row";
-  const titleEl = document.createElement("div");
+  const titleEl = document.createElement(rowsKey ? "button" : "div");
   titleEl.className = "material-title";
+  if (rowsKey) {
+    titleEl.type = "button";
+    titleEl.classList.add("title-action");
+    titleEl.onclick = event => {
+      event.preventDefault();
+      addExtraRow(rowsKey);
+    };
+  }
   titleEl.innerHTML = `<span aria-hidden="true">+</span><strong>${esc(title)}</strong>`;
   const areaEl = document.createElement("div");
   areaEl.className = "area";
@@ -701,9 +709,15 @@ function extraRows(title, kind, key) {
   state[key].forEach((item, index) => {
     const row = document.createElement("div");
     row.className = "extra-row";
-    const titleEl = document.createElement("div");
-    titleEl.className = "material-title extra-title";
+    const titleEl = document.createElement("button");
+    titleEl.type = "button";
+    titleEl.className = "material-title extra-title title-action";
     titleEl.innerHTML = `<span aria-hidden="true">×</span><strong>${esc(title)}</strong>`;
+    titleEl.onclick = event => {
+      event.preventDefault();
+      state[key].splice(index, 1);
+      setState(key, state[key]);
+    };
     const area = document.createElement("input");
     area.inputMode = "decimal";
     area.placeholder = "m²";
@@ -740,9 +754,14 @@ function renderExtraOnlyBlock(title, kind, key) {
   block.className = "material-block";
   const row = document.createElement("div");
   row.className = "material-row";
-  const titleEl = document.createElement("div");
-  titleEl.className = "material-title";
+  const titleEl = document.createElement("button");
+  titleEl.type = "button";
+  titleEl.className = "material-title title-action";
   titleEl.innerHTML = `<span aria-hidden="true">+</span><strong>${esc(title)}</strong>`;
+  titleEl.onclick = event => {
+    event.preventDefault();
+    addExtraRow(key);
+  };
   const spacerA = document.createElement("div");
   spacerA.className = "material-row-spacer";
   const spacerB = document.createElement("div");

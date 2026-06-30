@@ -386,6 +386,23 @@ input:focus, select:focus {
   font-weight: 600;
 }
 
+button.material-title {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.material-title:focus-visible {
+  outline: 3px solid rgba(16, 185, 198, 0.25);
+  border-radius: 6px;
+}
+
 .material-title span {
   color: var(--accent);
   font-size: 24px;

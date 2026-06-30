@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "31";
+const APP_VERSION = "32";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -57,6 +57,8 @@ const text = {
     extraWall: "დამატებითი კედლის მასალები",
     extraCeiling: "დამატებითი ჭერის მასალები",
     absorbers: "დამატებითი აბსორბერები",
+    absorberSurface: "აბსორბერები",
+    extraAbsorber: "დამატებითი აბსორბერი",
     area: "ფართობი",
     comparison: "შედარება",
     comparisonCeiling: "შედარებითი ჭერი",
@@ -69,6 +71,8 @@ const text = {
     average250: "საშუალო 250 ჰც-დან",
     materialMissing: "მასალა არჩეული არ არის",
     missingTail: "ეს ზედაპირები შთანთქმაში 0-ად ჩაითვლება.",
+    areaExceeded: "ფართობი გადაჭარბებულია",
+    areaExceededTail: "დამატებული ფართობი მთავარ ფართობს არ უნდა აღემატებოდეს.",
     clearAsk: "ყველა მონაცემი წაიშალოს?",
     improvementBig: "მნიშვნელოვანი გაუმჯობესება",
     improvementMid: "ზომიერი გაუმჯობესება",
@@ -136,6 +140,8 @@ const text = {
     extraWall: "Additional wall materials",
     extraCeiling: "Additional ceiling materials",
     absorbers: "Additional absorbers",
+    absorberSurface: "Absorbers",
+    extraAbsorber: "Additional absorber",
     area: "Area",
     comparison: "Comparison",
     comparisonCeiling: "Comparison ceiling",
@@ -148,6 +154,8 @@ const text = {
     average250: "Average from 250 Hz",
     materialMissing: "Material not selected",
     missingTail: "These surfaces are counted as 0 absorption.",
+    areaExceeded: "Area exceeded",
+    areaExceededTail: "Added area must not exceed the main area.",
     clearAsk: "Clear all data?",
     improvementBig: "Significant improvement",
     improvementMid: "Moderate improvement",
@@ -404,6 +412,25 @@ function rowContributions(rows, totalArea) {
     if (area > 0) out.push({...row, area, selection: Number(row.selection)});
   });
   return out;
+}
+
+function rowsTotal(rows) {
+  return rows.reduce((total, row) => total + Math.max(0, n(row.area)), 0);
+}
+
+function areaIssues() {
+  const issues = [];
+  const floorTotal = floorArea();
+  const wallTotal = wallArea();
+  const ceilingTotal = ceilingArea();
+  const floorExtra = rowsTotal(state.extraFloorRows);
+  const wallExtra = rowsTotal(state.extraWallRows);
+  const ceilingExtra = rowsTotal(state.extraCeilingRows);
+  const absorberExtra = rowsTotal(state.extraAbsorberRows);
+  if (floorExtra > floorTotal) issues.push(`${t("extraFloor")}: ${fmt(floorExtra)} / ${fmt(floorTotal)} m²`);
+  if (wallExtra > wallTotal) issues.push(`${t("extraWall")}: ${fmt(wallExtra)} / ${fmt(wallTotal)} m²`);
+  if (ceilingExtra + absorberExtra > ceilingTotal) issues.push(`${t("ceiling")}: ${fmt(ceilingExtra + absorberExtra)} / ${fmt(ceilingTotal)} m²`);
+  return issues;
 }
 
 function clampCoefficient(value) {
@@ -749,19 +776,14 @@ function extraRows(title, kind, key) {
   return wrap;
 }
 
-function renderExtraOnlyBlock(title, kind, key) {
+function renderExtraOnlyBlock(title, addLabel, kind, key) {
   const block = document.createElement("div");
   block.className = "material-block";
   const row = document.createElement("div");
   row.className = "material-row";
-  const titleEl = document.createElement("button");
-  titleEl.type = "button";
-  titleEl.className = "material-title title-action";
-  titleEl.innerHTML = `<span aria-hidden="true">+</span><strong>${esc(title)}</strong>`;
-  titleEl.onclick = event => {
-    event.preventDefault();
-    addExtraRow(key);
-  };
+  const titleEl = document.createElement("div");
+  titleEl.className = "material-title no-icon";
+  titleEl.innerHTML = `<strong>${esc(title)}</strong>`;
   const spacerA = document.createElement("div");
   spacerA.className = "material-row-spacer";
   const spacerB = document.createElement("div");
@@ -769,7 +791,7 @@ function renderExtraOnlyBlock(title, kind, key) {
   const add = document.createElement("button");
   add.type = "button";
   add.className = "inline-add-btn";
-  add.innerHTML = `<span aria-hidden="true">+</span><strong>${esc(t("add"))}</strong>`;
+  add.innerHTML = `<span aria-hidden="true">+</span><strong>${esc(addLabel)}</strong>`;
   add.onclick = event => {
     event.preventDefault();
     addExtraRow(key);
@@ -788,7 +810,7 @@ function renderMaterials() {
   box.appendChild(renderMaterialBlock(t("door"), "door", "doorSelection", n(state.doorArea), null, null, "door"));
   box.appendChild(renderMaterialBlock(t("window"), "window", "windowSelection", n(state.windowArea), null, null, "window"));
   box.appendChild(renderMaterialBlock(t("ceiling"), "ceiling", "ceilingSelection", c.effectiveCeiling, t("extraCeiling"), "extraCeilingRows", "effectiveCeiling"));
-  box.appendChild(renderExtraOnlyBlock(t("absorbers"), "ceiling", "extraAbsorberRows"));
+  box.appendChild(renderExtraOnlyBlock(t("absorberSurface"), t("extraAbsorber"), "ceiling", "extraAbsorberRows"));
   renderCoefficients();
 }
 
@@ -860,8 +882,12 @@ function renderComputedOnly() {
   });
   const warning = document.getElementById("warning");
   const missing = missingMaterials(c);
-  warning.classList.toggle("hidden", missing.length === 0);
-  warning.textContent = missing.length ? `${t("materialMissing")}: ${missing.join(", ")}. ${t("missingTail")}` : "";
+  const areas = areaIssues();
+  const messages = [];
+  if (missing.length) messages.push(`${t("materialMissing")}: ${missing.join(", ")}. ${t("missingTail")}`);
+  if (areas.length) messages.push(`${t("areaExceeded")}: ${areas.join("; ")}. ${t("areaExceededTail")}`);
+  warning.classList.toggle("hidden", messages.length === 0);
+  warning.textContent = messages.join(" ");
   renderCoefficients();
   renderResults(c);
 }

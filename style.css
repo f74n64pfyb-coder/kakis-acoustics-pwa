@@ -414,6 +414,10 @@ button.material-title:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.material-title.no-icon {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .extra-title span {
   color: var(--danger);
 }

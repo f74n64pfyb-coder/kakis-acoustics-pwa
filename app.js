@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "34";
+const APP_VERSION = "35";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -679,7 +679,6 @@ function renderInlineCustomEditor(kind, selection, source) {
     data.name = nameInput.value;
     if (source && typeof source === "object") source.customName = nameInput.value;
     saveState();
-    renderCoefficients();
     renderComputedOnly();
   };
   nameLabel.appendChild(nameInput);
@@ -701,7 +700,6 @@ function renderInlineCustomEditor(kind, selection, source) {
       data.values[index] = input.value.replace(/[^\d.,]/g, "");
       if (source && typeof source === "object") source.customValues = data.values;
       saveState();
-      renderCoefficients();
       renderComputedOnly();
     };
     label.appendChild(input);
@@ -823,18 +821,6 @@ function renderMaterials() {
   box.appendChild(renderMaterialBlock(t("door"), "door", "doorSelection", c.primaryDoor, null, null, "door", t("extraDoorAbsorber"), "doorAbsorberRows"));
   box.appendChild(renderMaterialBlock(t("window"), "window", "windowSelection", c.primaryWindow, null, null, "window", t("extraWindowAbsorber"), "windowAbsorberRows"));
   box.appendChild(renderMaterialBlock(t("ceiling"), "ceiling", "ceilingSelection", c.effectiveCeiling, t("extraCeiling"), "extraCeilingRows", "effectiveCeiling", t("extraCeilingAbsorber"), "ceilingAbsorberRows"));
-  renderCoefficients();
-}
-
-function renderCoefficients() {
-  const rows = [];
-  if (state.ceilingSelection >= 0) rows.push([t("ceiling"), expandedCoefficients(materialAt("ceiling", state.ceilingSelection, "ceilingSelection")?.values || [])]);
-  state.ceilingAbsorberRows.forEach((r, i) => {
-    if (r.selection >= 0) rows.push([`${t("absorbers")} ${i + 1}`, expandedCoefficients(materialAt("ceiling", r.selection, r)?.values || [])]);
-  });
-  document.getElementById("coefficients-table").innerHTML = rows.length ? rows.map(([name, values]) => `
-    <div class="table-wrap"><table><tr><th>${name}</th>${freqs.map(f => `<th>${f} Hz</th>`).join("")}</tr><tr><td>α</td>${values.map(v => `<td>${fmt(v)}</td>`).join("")}</tr></table></div>
-  `).join("") : `<p class="hint">${state.language === "en" ? "Ceiling material is not selected yet." : "ჭერის მასალა ჯერ არჩეული არ არის."}</p>`;
 }
 
 function renderAlternative() {
@@ -908,7 +894,6 @@ function renderComputedOnly() {
   if (areas.length) messages.push(`${t("areaExceeded")}: ${areas.join("; ")}. ${t("areaExceededTail")}`);
   warning.classList.toggle("hidden", messages.length === 0);
   warning.textContent = messages.join(" ");
-  renderCoefficients();
   renderResults(c);
 }
 

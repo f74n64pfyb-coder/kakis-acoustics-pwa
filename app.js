@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "36";
+const APP_VERSION = "37";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -13,7 +13,6 @@ const text = {
     guide3: "კარისა და ფანჯრის ფართობები კედლის ფართობს ავტომატურად აკლდება.",
     guide4: "მასალებში ჯერ აირჩიე ვარიანტი; არჩეული არ არის ნიშნავს 0 შთანთქმას.",
     guide5: "თუ ზედაპირზე რამდენიმე მასალაა, დაამატე დამატებითი რიგი.",
-    guide6: "შედარება გამოიყენე მეორე ჭერის/აბსორბერის ვარიანტის შესაფასებლად.",
     guide7: "PDF-ისთვის გამოიყენე გაზიარების ღილაკი.",
     roomDimensions: "1. ოთახის ზომები",
     roomHint: "აქ შეყვანილი მონაცემებით ავტომატურად ითვლება იატაკის, კედლების, ჭერის ფართობი და ოთახის მოცულობა.",
@@ -30,7 +29,6 @@ const text = {
     coefficients: "მასალის კოეფიციენტები",
     customMaterial: "საკუთარი მასალა",
     description: "აღწერა",
-    comparisonCalc: "შედარებითი გამოთვლა",
     results: "3. შედეგები",
     resultHint: "რევერბერაციის დრო T აჩვენებს რამდენ ხანს გრძელდება ხმა ოთახში. შთანთქმის ფართობი A აჩვენებს რამდენად შთანთქავს სივრცე ხმას.",
     exportPdf: "PDF ექსპორტი",
@@ -65,10 +63,6 @@ const text = {
     extraWindowAbsorber: "დამატებითი ფანჯრის აბსორბერი",
     extraCeilingAbsorber: "დამატებითი ჭერის აბსორბერი",
     area: "ფართობი",
-    comparison: "შედარება",
-    comparisonCeiling: "შედარებითი ჭერი",
-    comparisonAbsorber: "შედარებითი აბსორბერი",
-    comparisonAbsorberArea: "შედარებითი აბსორბერის ფართობი",
     reverberation: "რევერბერაციის დრო T [წმ]",
     absorption: "შთანთქმის ფართობი A [m² Sab]",
     calculation: "გამოთვლა",
@@ -82,9 +76,6 @@ const text = {
     improvementBig: "მნიშვნელოვანი გაუმჯობესება",
     improvementMid: "ზომიერი გაუმჯობესება",
     improvementSmall: "მცირე გაუმჯობესება",
-    noChange: "შედარებაში მნიშვნელოვანი ცვლილება არ ჩანს",
-    worse: "შედარებით ვარიანტში რევერბერაცია იზრდება",
-    change: "250-8000 ჰც საშუალო ცვლილება",
     report: "აკუსტიკის ანგარიში",
     printHint: "PDF-ის შესანახად აირჩიე Share/Print და Save to Files."
     ,
@@ -101,7 +92,6 @@ const text = {
     guide3: "Door and window areas are automatically subtracted from wall area.",
     guide4: "Select a material first; not selected means 0 absorption.",
     guide5: "If one surface has several materials, add an extra row.",
-    guide6: "Use comparison to evaluate another ceiling or absorber option.",
     guide7: "Use the share button for PDF export.",
     roomDimensions: "1. Room dimensions",
     roomHint: "The values entered here calculate the floor, wall, ceiling area and room volume automatically.",
@@ -118,7 +108,6 @@ const text = {
     coefficients: "Material coefficients",
     customMaterial: "Custom material",
     description: "Description",
-    comparisonCalc: "Comparison calculation",
     results: "3. Results",
     resultHint: "Reverberation time T shows how long sound remains in the room. Absorption area A shows how much sound the room absorbs.",
     exportPdf: "Export PDF",
@@ -153,10 +142,6 @@ const text = {
     extraWindowAbsorber: "Additional window absorber",
     extraCeilingAbsorber: "Additional ceiling absorber",
     area: "Area",
-    comparison: "Comparison",
-    comparisonCeiling: "Comparison ceiling",
-    comparisonAbsorber: "Comparison absorber",
-    comparisonAbsorberArea: "Comparison absorber area",
     reverberation: "Reverberation time T [sec]",
     absorption: "Absorption area A [m² Sab]",
     calculation: "Calculation",
@@ -170,9 +155,6 @@ const text = {
     improvementBig: "Significant improvement",
     improvementMid: "Moderate improvement",
     improvementSmall: "Small improvement",
-    noChange: "No meaningful change in the comparison",
-    worse: "The comparison option increases reverberation",
-    change: "Average change from 250-8000 Hz",
     report: "Acoustics report",
     printHint: "To save as PDF choose Share/Print and Save to Files."
     ,
@@ -213,11 +195,6 @@ const defaults = {
   doorAbsorberRows: [],
   windowAbsorberRows: [],
   ceilingAbsorberRows: [],
-  alternativeEnabled: false,
-  alternativeCeilingSelection: -1,
-  alternativeAbsorberEnabled: true,
-  alternativeAbsorberArea: "",
-  alternativeAbsorberSelection: -1,
   customName: "",
   customValues: ["", "", "", "", "", "", "", ""],
   customMaterials: {},
@@ -585,34 +562,7 @@ function computed() {
     return total;
   });
   const reverberation = absorption.map(a => a === 0 ? 0 : Math.max(0.05, 0.16 * volume() / a));
-  const altAbsorberArea = state.alternativeEnabled && state.alternativeAbsorberEnabled ? Math.min(n(state.alternativeAbsorberArea), ceilingArea()) : 0;
-  const altEffectiveCeiling = Math.max(0, ceilingArea() - altAbsorberArea);
-  const altAbsorption = freqs.map((_, i) => {
-    let total = primaryFloor * coeff("floor", state.floorSelection, i, "floorSelection");
-    total += primaryWall * coeff("wall", state.wallSelection, i, "wallSelection");
-    total += primaryDoor * coeff("door", state.doorSelection, i, "doorSelection");
-    total += primaryWindow * coeff("window", state.windowSelection, i, "windowSelection");
-    total += altEffectiveCeiling * coeff("ceiling", state.alternativeCeilingSelection, i, "alternativeCeilingSelection");
-    total += altAbsorberArea * coeff("ceiling", state.alternativeAbsorberSelection, i, "alternativeAbsorberSelection");
-    floorExtra.forEach(r => total += r.area * coeff("floor", r.selection, i, r));
-    wallExtra.forEach(r => total += r.area * coeff("wall", r.selection, i, r));
-    doorExtra.forEach(r => total += r.area * coeff("door", r.selection, i, r));
-    windowExtra.forEach(r => total += r.area * coeff("window", r.selection, i, r));
-    ceilingExtra.forEach(r => total += r.area * coeff("ceiling", r.selection, i, r));
-    floorExtraData.absorbers.forEach(r => total += r.area * coeff("floor", r.selection, i, r));
-    wallExtraData.absorbers.forEach(r => total += r.area * coeff("wall", r.selection, i, r));
-    doorExtraData.absorbers.forEach(r => total += r.area * coeff("door", r.selection, i, r));
-    windowExtraData.absorbers.forEach(r => total += r.area * coeff("window", r.selection, i, r));
-    ceilingExtraData.absorbers.forEach(r => total += r.area * coeff("ceiling", r.selection, i, r));
-    floorAbsorber.forEach(r => total += r.area * coeff("floor", r.selection, i, r));
-    wallAbsorber.forEach(r => total += r.area * coeff("wall", r.selection, i, r));
-    doorAbsorber.forEach(r => total += r.area * coeff("door", r.selection, i, r));
-    windowAbsorber.forEach(r => total += r.area * coeff("window", r.selection, i, r));
-    ceilingAbsorber.forEach(r => total += r.area * coeff("ceiling", r.selection, i, r));
-    return total;
-  });
-  const altReverberation = altAbsorption.map(a => a === 0 ? 0 : Math.max(0.05, 0.16 * volume() / a));
-  return {primaryFloor, primaryWall, primaryDoor, primaryWindow, effectiveCeiling, absorption, reverberation, altAbsorption, altReverberation, altEffectiveCeiling, altAbsorberArea};
+  return {primaryFloor, primaryWall, primaryDoor, primaryWindow, effectiveCeiling, absorption, reverberation};
 }
 
 function setState(key, value) {
@@ -652,7 +602,6 @@ function render() {
   renderChoices();
   renderDimensions();
   renderMaterials();
-  renderAlternative();
   renderComputedOnly();
 }
 
@@ -663,7 +612,6 @@ function bindStaticInputs() {
     state.project = project.value;
     saveState();
   };
-  document.getElementById("alternative-enabled").checked = state.alternativeEnabled;
 }
 
 function renderChoices() {
@@ -966,26 +914,6 @@ function renderMaterials() {
   box.appendChild(renderMaterialBlock(t("ceiling"), "ceiling", "ceilingSelection", c.effectiveCeiling, t("extraCeiling"), "extraCeilingRows", "effectiveCeiling", t("extraCeilingAbsorber"), "ceilingAbsorberRows"));
 }
 
-function renderAlternative() {
-  const panel = document.getElementById("alternative-panel");
-  panel.classList.toggle("hidden", !state.alternativeEnabled);
-  if (!state.alternativeEnabled) return;
-  const c = computed();
-  panel.innerHTML = `<h3>${t("comparison")}</h3><p>${state.language === "en" ? "Same room with a different ceiling or absorber option." : "იგივე ოთახი სხვა ჭერის ან აბსორბერის ვარიანტით."}</p>`;
-  panel.appendChild(renderMaterialBlock(t("comparisonCeiling"), "ceiling", "alternativeCeilingSelection", c.altEffectiveCeiling, null, null, "altEffectiveCeiling"));
-  const toggle = document.createElement("label");
-  toggle.className = "switch-row comparison-switch";
-  toggle.innerHTML = `<input type="checkbox" ${state.alternativeAbsorberEnabled ? "checked" : ""}><i aria-hidden="true"></i><span>${t("comparisonAbsorber")}</span>`;
-  toggle.querySelector("input").onchange = e => setState("alternativeAbsorberEnabled", e.target.checked);
-  panel.appendChild(toggle);
-  if (state.alternativeAbsorberEnabled) {
-    const areaField = makeNumber(t("comparisonAbsorberArea"), "alternativeAbsorberArea", "m²");
-    areaField.classList.add("comparison-number");
-    panel.appendChild(areaField);
-    panel.appendChild(renderMaterialBlock(t("comparisonAbsorber"), "ceiling", "alternativeAbsorberSelection", c.altAbsorberArea, null, null, "altAbsorberArea"));
-  }
-}
-
 function missingMaterials(c) {
   const missing = [];
   if (c.primaryFloor > 0 && state.floorSelection < 0) missing.push(t("floor"));
@@ -1009,8 +937,6 @@ function missingMaterials(c) {
       if (n(row.area) > 0 && Number(row.selection) < 0) missing.push(`${label} ${index + 1}`);
     });
   });
-  if (state.alternativeEnabled && c.altEffectiveCeiling > 0 && state.alternativeCeilingSelection < 0) missing.push(t("comparisonCeiling"));
-  if (state.alternativeEnabled && state.alternativeAbsorberEnabled && c.altAbsorberArea > 0 && state.alternativeAbsorberSelection < 0) missing.push(t("comparisonAbsorber"));
   return missing;
 }
 
@@ -1046,25 +972,21 @@ function resultTable(title, values, suffix) {
 function renderResults(c) {
   const output = document.getElementById("results-output");
   const values = state.resultType === 0 ? c.reverberation : c.absorption;
-  const alt = state.resultType === 0 ? c.altReverberation : c.altAbsorption;
   const suffix = state.resultType === 0 ? (state.language === "en" ? "sec" : "წმ") : "m² Sab";
   output.innerHTML = `
     <h3>${state.resultType === 0 ? t("reverberation") : t("absorption")}</h3>
     ${resultTable(t("calculation"), values, suffix)}
-    ${chartSvg(values, state.alternativeEnabled ? alt : null)}
+    ${chartSvg(values)}
     <div class="result-summary">
       <div class="summary-box"><span>${t("average125")}</span><strong>${fmt(averageFrom(values, 125))} ${suffix}</strong></div>
       <div class="summary-box"><span>${t("average250")}</span><strong>${fmt(averageFrom(values, 250))} ${suffix}</strong></div>
     </div>
-    ${state.alternativeEnabled && state.resultType === 0 ? comparisonSummary(c) : ""}
-    ${state.alternativeEnabled ? resultTable(t("comparison"), alt, suffix) : ""}
   `;
 }
 
-function chartSvg(primary, alternative) {
-  const all = alternative ? primary.concat(alternative) : primary;
-  const max = Math.max(0.1, ...all);
-  const min = Math.min(0, ...all);
+function chartSvg(primary) {
+  const max = Math.max(0.1, ...primary);
+  const min = Math.min(0, ...primary);
   const range = max - min || 1;
   const step = freqs.length > 1 ? 522 / (freqs.length - 1) : 0;
   const points = values => values.map((v, i) => {
@@ -1074,35 +996,13 @@ function chartSvg(primary, alternative) {
   });
   const line = pts => pts.map((p, i) => `${i ? "L" : "M"}${p[0]},${p[1]}`).join(" ");
   const p1 = points(primary);
-  const p2 = alternative ? points(alternative) : [];
   return `<svg class="chart" viewBox="0 0 600 250" role="img">
     <line x1="42" y1="205" x2="570" y2="205" stroke="#d5d8de"/>
     <line x1="42" y1="35" x2="42" y2="205" stroke="#d5d8de"/>
     ${freqs.map((f, i) => `<text x="${48 + i * step}" y="230" font-size="12" text-anchor="middle" fill="#666">${f}</text>`).join("")}
     <path d="${line(p1)}" fill="none" stroke="#f39a00" stroke-width="4" stroke-dasharray="10 8"/>
     ${p1.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="7" fill="#fff" stroke="#f39a00" stroke-width="4"/>`).join("")}
-    ${alternative ? `<path d="${line(p2)}" fill="none" stroke="#10b9c6" stroke-width="4"/>${p2.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="7" fill="#fff" stroke="#10b9c6" stroke-width="4"/>`).join("")}` : ""}
   </svg>`;
-}
-
-function comparisonSummary(c) {
-  const base = averageRange(c.reverberation, 250, 8000);
-  const alt = averageRange(c.altReverberation, 250, 8000);
-  const diff = base - alt;
-  const percent = base === 0 ? 0 : diff / base * 100;
-  const abs = Math.abs(percent);
-  const neutral = Math.abs(diff) < 0.05 || abs < 2;
-  const title = neutral ? t("noChange") : diff < 0 ? t("worse") : abs >= 15 ? t("improvementBig") : abs >= 5 ? t("improvementMid") : t("improvementSmall");
-  const cls = neutral ? "neutral" : diff < 0 ? "bad" : "";
-  return `<div class="comparison-summary ${cls}">
-    <strong>${title}</strong>
-    <p>${t("change")}: ${fmt(Math.abs(diff))} ${state.language === "en" ? "sec" : "წმ"} (${fmt(Math.abs(percent))}%)</p>
-    <div class="chips">${freqs.slice(freqs.indexOf("250")).map((f, i) => {
-      const index = i + freqs.indexOf("250");
-      const d = c.reverberation[index] - c.altReverberation[index];
-      return `<div class="chip"><span>${f} Hz</span><br><strong>${d >= 0 ? "-" : "+"}${fmt(Math.abs(d))}</strong></div>`;
-    }).join("")}</div>
-  </div>`;
 }
 
 function reportTable(title, values, suffix) {
@@ -1226,8 +1126,7 @@ function buildReportMarkup() {
       <div class="pdf-materials">${reportCalculationRows(c)}</div>
       <p class="pdf-type">${state.language === "en" ? "Calculation type 1" : "გამოთვლის ტიპი 1"}</p>
       ${reportTable(t("reverberation"), c.reverberation, suffix)}
-      ${chartSvg(c.reverberation, state.alternativeEnabled ? c.altReverberation : null)}
-      ${state.alternativeEnabled ? `<h3>${t("comparison")}</h3>${comparisonSummary(c)}${reportTable(t("comparison"), c.altReverberation, suffix)}` : ""}
+      ${chartSvg(c.reverberation)}
     </article>
 
     <article class="report-page explanation-page">
@@ -1291,11 +1190,6 @@ function printDocumentCss() {
     .report-table th { background: #b6d7f5; font-weight: 600; }
     .report-table td:first-child, .report-table th:first-child { text-align: left; }
     .chart { display: block; width: 100%; max-width: 100%; height: 30mm; margin: 2mm 0 0; border: 1px solid #d8dce2; }
-    .comparison-summary { margin: 3mm 0; padding: 3mm; background: #eaf8ee; break-inside: avoid; }
-    .comparison-summary.bad { background: #fff4dc; }
-    .comparison-summary.neutral { background: #f0f1f5; }
-    .chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2mm; }
-    .chip { background: #fff; padding: 2mm; font-size: 8px; text-align: center; }
     .pdf-explainer { display: block; margin-top: 8mm; padding: 4mm; background: #d4d4d4; }
     .pdf-explainer h2 { font-size: 12px; margin: 0 0 3mm; }
     .pdf-explainer p { font-size: 10px; line-height: 1.2; margin: 0 0 4mm; }
@@ -1344,7 +1238,6 @@ document.getElementById("lang-en").onclick = () => setState("language", "en");
 document.getElementById("clear-btn").onclick = clearAll;
 document.getElementById("export-btn").onclick = exportPdf;
 document.getElementById("export-btn-secondary").onclick = exportPdf;
-document.getElementById("alternative-enabled").onchange = e => setState("alternativeEnabled", e.target.checked);
 window.addEventListener("afterprint", () => document.body.classList.remove("printing"));
 
 function blurActiveField() {

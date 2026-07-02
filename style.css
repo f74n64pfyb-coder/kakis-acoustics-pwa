@@ -372,6 +372,46 @@ input:focus, select:focus {
   border-bottom: 1px solid var(--line);
 }
 
+.coefficient-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+  padding: 0 12px 12px calc(12px + 20%);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.coefficient-line span {
+  white-space: nowrap;
+}
+
+.coefficient-line b {
+  font-weight: 500;
+}
+
+.extra-row .nested-absorber-btn {
+  grid-column: 3 / 5;
+  justify-self: start;
+}
+
+.nested-absorber-list {
+  display: grid;
+  border-bottom: 1px solid var(--line);
+  background: #f7fbfc;
+}
+
+.nested-absorber-row {
+  padding-left: 32px;
+  background: #f7fbfc;
+}
+
+.nested-absorber-list .coefficient-line {
+  background: #f7fbfc;
+  padding-left: calc(32px + 20%);
+}
+
 .material-block > .material-row:last-child,
 .extra-list > .extra-row:last-child {
   border-bottom: 0;
@@ -1366,10 +1406,31 @@ td:first-child, th:first-child {
   .inline-add-btn {
     min-height: 38px;
     padding: 0;
+    font-size: 14px;
+    line-height: 1.25;
   }
 
   .remove-btn {
     justify-self: start;
+  }
+
+  .coefficient-line,
+  .nested-absorber-list .coefficient-line {
+    padding: 0 12px 12px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .coefficient-line span {
+    white-space: normal;
+  }
+
+  .nested-absorber-row {
+    padding-left: 12px;
+  }
+
+  .extra-row .nested-absorber-btn {
+    grid-column: 1 / -1;
   }
 
   .field {

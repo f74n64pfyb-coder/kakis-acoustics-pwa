@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "37";
+const APP_VERSION = "38";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -66,6 +66,11 @@ const text = {
     reverberation: "რევერბერაციის დრო T [წმ]",
     absorption: "შთანთქმის ფართობი A [m² Sab]",
     calculation: "გამოთვლა",
+    withoutAbsorber: "გამოთვლა 1 აბსორბერის გარეშე",
+    withAbsorber: "გამოთვლა 1 აბსორბერით",
+    target: "მიზანი",
+    targetTime: "მიზანი",
+    secondsShort: "წმ",
     average125: "საშუალო 125 ჰც-დან",
     average250: "საშუალო 250 ჰც-დან",
     materialMissing: "მასალა არჩეული არ არის",
@@ -145,6 +150,11 @@ const text = {
     reverberation: "Reverberation time T [sec]",
     absorption: "Absorption area A [m² Sab]",
     calculation: "Calculation",
+    withoutAbsorber: "Calculation 1 Without absorber",
+    withAbsorber: "Calculation 1 With absorber",
+    target: "Target",
+    targetTime: "Target",
+    secondsShort: "sec",
     average125: "Average from 125 Hz",
     average250: "Average from 250 Hz",
     materialMissing: "Material not selected",
@@ -170,6 +180,7 @@ const defaults = {
   project: "",
   shape: 0,
   resultType: 0,
+  targetTime: "",
   length: "",
   width: "",
   height1: "",
@@ -538,6 +549,24 @@ function computed() {
   const primaryDoor = Math.max(0, n(state.doorArea) - doorExtraData.grossArea - doorAbsorber.reduce((a, r) => a + r.area, 0));
   const primaryWindow = Math.max(0, n(state.windowArea) - windowExtraData.grossArea - windowAbsorber.reduce((a, r) => a + r.area, 0));
   const effectiveCeiling = Math.max(0, ceilingArea() - ceilingExtraData.grossArea - ceilingAbsorberArea);
+  const baseFloor = Math.max(0, floorArea() - floorExtraData.grossArea);
+  const baseWall = Math.max(0, wallArea() - wallExtraData.grossArea);
+  const baseDoor = Math.max(0, n(state.doorArea) - doorExtraData.grossArea);
+  const baseWindow = Math.max(0, n(state.windowArea) - windowExtraData.grossArea);
+  const baseCeiling = Math.max(0, ceilingArea() - ceilingExtraData.grossArea);
+  const absorptionWithoutAbsorber = freqs.map((_, i) => {
+    let total = baseFloor * coeff("floor", state.floorSelection, i, "floorSelection");
+    total += baseWall * coeff("wall", state.wallSelection, i, "wallSelection");
+    total += baseDoor * coeff("door", state.doorSelection, i, "doorSelection");
+    total += baseWindow * coeff("window", state.windowSelection, i, "windowSelection");
+    total += baseCeiling * coeff("ceiling", state.ceilingSelection, i, "ceilingSelection");
+    floorExtraData.materials.forEach(r => total += r.grossArea * coeff("floor", r.selection, i, r));
+    wallExtraData.materials.forEach(r => total += r.grossArea * coeff("wall", r.selection, i, r));
+    doorExtraData.materials.forEach(r => total += r.grossArea * coeff("door", r.selection, i, r));
+    windowExtraData.materials.forEach(r => total += r.grossArea * coeff("window", r.selection, i, r));
+    ceilingExtraData.materials.forEach(r => total += r.grossArea * coeff("ceiling", r.selection, i, r));
+    return total;
+  });
   const absorption = freqs.map((_, i) => {
     let total = primaryFloor * coeff("floor", state.floorSelection, i, "floorSelection");
     total += primaryWall * coeff("wall", state.wallSelection, i, "wallSelection");
@@ -561,8 +590,9 @@ function computed() {
     ceilingAbsorber.forEach(r => total += r.area * coeff("ceiling", r.selection, i, r));
     return total;
   });
+  const reverberationWithoutAbsorber = absorptionWithoutAbsorber.map(a => a === 0 ? 0 : Math.max(0.05, 0.16 * volume() / a));
   const reverberation = absorption.map(a => a === 0 ? 0 : Math.max(0.05, 0.16 * volume() / a));
-  return {primaryFloor, primaryWall, primaryDoor, primaryWindow, effectiveCeiling, absorption, reverberation};
+  return {primaryFloor, primaryWall, primaryDoor, primaryWindow, effectiveCeiling, absorption, absorptionWithoutAbsorber, reverberation, reverberationWithoutAbsorber};
 }
 
 function setState(key, value) {
@@ -612,6 +642,15 @@ function bindStaticInputs() {
     state.project = project.value;
     saveState();
   };
+  const target = document.getElementById("target-time");
+  if (target && document.activeElement !== target) target.value = state.targetTime ?? "";
+  if (target) {
+    target.oninput = () => {
+      state.targetTime = target.value.replace(/[^\d.,]/g, "");
+      saveState();
+      renderComputedOnly();
+    };
+  }
 }
 
 function renderChoices() {
@@ -942,6 +981,7 @@ function missingMaterials(c) {
 
 function renderComputedOnly() {
   const c = computed();
+  document.querySelector(".target-field")?.classList.toggle("hidden", state.resultType !== 0);
   document.getElementById("floor-area").textContent = `${fmt(floorArea())} m²`;
   document.getElementById("wall-area").textContent = `${fmt(wallArea())} m²`;
   document.getElementById("ceiling-area").textContent = `${fmt(ceilingArea())} m²`;
@@ -963,20 +1003,65 @@ function renderComputedOnly() {
 }
 
 function resultTable(title, values, suffix) {
+  return resultRowsTable(title, [{label: t("calculation"), values}], suffix);
+}
+
+function resultRowsTable(title, rows, suffix) {
   return `<div class="table-wrap"><table>
     <tr><th>${title}</th>${freqs.map(f => `<th>${f} Hz</th>`).join("")}<th>${t("average125")}</th><th>${t("average250")}</th></tr>
-    <tr><td></td>${values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(averageFrom(values, 125))}</td><td>${fmt(averageFrom(values, 250))}</td></tr>
+    ${rows.map(row => `<tr><td>${esc(row.label)}</td>${row.values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(averageFrom(row.values, 125))}</td><td>${fmt(averageFrom(row.values, 250))}</td></tr>`).join("")}
   </table></div>`;
+}
+
+function absorberAreaTotal() {
+  const direct = rowsTotal(state.floorAbsorberRows) + rowsTotal(state.wallAbsorberRows) + rowsTotal(state.doorAbsorberRows) + rowsTotal(state.windowAbsorberRows) + rowsTotal(state.ceilingAbsorberRows);
+  const nested = [...state.extraFloorRows, ...state.extraWallRows, ...state.extraDoorRows, ...state.extraWindowRows, ...state.extraCeilingRows]
+    .reduce((total, row) => total + rowsTotal(row.absorberRows || []), 0);
+  return direct + nested;
+}
+
+function targetSeries() {
+  const target = n(state.targetTime);
+  return target > 0 ? freqs.map(() => target) : null;
+}
+
+function resultPresentation(c, resultType = state.resultType) {
+  const hasAbsorber = absorberAreaTotal() > 0;
+  const target = resultType === 0 ? targetSeries() : null;
+  const values = resultType === 0 ? c.reverberation : c.absorption;
+  const valuesWithout = resultType === 0 ? c.reverberationWithoutAbsorber : c.absorptionWithoutAbsorber;
+  const rows = hasAbsorber
+    ? [
+      {label: t("withoutAbsorber"), values: valuesWithout},
+      {label: t("withAbsorber"), values}
+    ]
+    : [{label: t("calculation"), values}];
+  if (target) rows.push({label: t("target"), values: target});
+  const series = hasAbsorber
+    ? [
+      {label: t("withoutAbsorber"), values: valuesWithout, color: "#f39a00", dash: "10 8"},
+      {label: t("withAbsorber"), values, color: "#078000", dash: "10 8"}
+    ]
+    : [{label: t("calculation"), values, color: "#f39a00", dash: "10 8"}];
+  if (target) series.push({label: t("target"), values: target, color: "#1437ff", dash: "10 8"});
+  return {rows, series, values};
+}
+
+function chartLegend(series) {
+  return `<div class="chart-legend">${series.map(item => `
+    <span><i style="background:${item.color}"></i>${esc(item.label)}</span>
+  `).join("")}</div>`;
 }
 
 function renderResults(c) {
   const output = document.getElementById("results-output");
-  const values = state.resultType === 0 ? c.reverberation : c.absorption;
+  const {rows, series, values} = resultPresentation(c);
   const suffix = state.resultType === 0 ? (state.language === "en" ? "sec" : "წმ") : "m² Sab";
   output.innerHTML = `
     <h3>${state.resultType === 0 ? t("reverberation") : t("absorption")}</h3>
-    ${resultTable(t("calculation"), values, suffix)}
-    ${chartSvg(values)}
+    ${resultRowsTable(state.resultType === 0 ? t("reverberation") : t("absorption"), rows, suffix)}
+    ${chartLegend(series)}
+    ${chartSvg(series)}
     <div class="result-summary">
       <div class="summary-box"><span>${t("average125")}</span><strong>${fmt(averageFrom(values, 125))} ${suffix}</strong></div>
       <div class="summary-box"><span>${t("average250")}</span><strong>${fmt(averageFrom(values, 250))} ${suffix}</strong></div>
@@ -984,9 +1069,10 @@ function renderResults(c) {
   `;
 }
 
-function chartSvg(primary) {
-  const max = Math.max(0.1, ...primary);
-  const min = Math.min(0, ...primary);
+function chartSvg(series) {
+  const all = series.flatMap(item => item.values);
+  const max = Math.max(0.1, ...all);
+  const min = Math.min(0, ...all);
   const range = max - min || 1;
   const step = freqs.length > 1 ? 522 / (freqs.length - 1) : 0;
   const points = values => values.map((v, i) => {
@@ -995,20 +1081,26 @@ function chartSvg(primary) {
     return [x, y];
   });
   const line = pts => pts.map((p, i) => `${i ? "L" : "M"}${p[0]},${p[1]}`).join(" ");
-  const p1 = points(primary);
   return `<svg class="chart" viewBox="0 0 600 250" role="img">
     <line x1="42" y1="205" x2="570" y2="205" stroke="#d5d8de"/>
     <line x1="42" y1="35" x2="42" y2="205" stroke="#d5d8de"/>
     ${freqs.map((f, i) => `<text x="${48 + i * step}" y="230" font-size="12" text-anchor="middle" fill="#666">${f}</text>`).join("")}
-    <path d="${line(p1)}" fill="none" stroke="#f39a00" stroke-width="4" stroke-dasharray="10 8"/>
-    ${p1.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="7" fill="#fff" stroke="#f39a00" stroke-width="4"/>`).join("")}
+    ${series.map(item => {
+      const pts = points(item.values);
+      return `<path d="${line(pts)}" fill="none" stroke="${item.color}" stroke-width="4" stroke-dasharray="${item.dash || ""}"/>
+        ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="7" fill="#fff" stroke="${item.color}" stroke-width="4"/>`).join("")}`;
+    }).join("")}
   </svg>`;
 }
 
 function reportTable(title, values, suffix) {
+  return reportRowsTable(title, [{label: "", values}], suffix);
+}
+
+function reportRowsTable(title, rows, suffix) {
   return `<table class="report-table">
     <tr><th>${title}</th>${freqs.map(f => `<th>${f} Hz</th>`).join("")}<th>${t("average125")}</th><th>${t("average250")}</th></tr>
-    <tr><td></td>${values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(averageFrom(values, 125))}</td><td>${fmt(averageFrom(values, 250))}</td></tr>
+    ${rows.map(row => `<tr><td>${esc(row.label)}</td>${row.values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(averageFrom(row.values, 125))}</td><td>${fmt(averageFrom(row.values, 250))}</td></tr>`).join("")}
   </table>`;
 }
 
@@ -1097,6 +1189,7 @@ function buildReportMarkup() {
   const c = computed();
   const suffix = state.language === "en" ? "sec" : "წმ";
   const project = state.project.trim() || "Kaki's Acoustics";
+  const presentation = resultPresentation(c, 0);
   return `
     <article class="report-page calculation-page">
       <header class="pdf-brand">
@@ -1114,6 +1207,7 @@ function buildReportMarkup() {
           ${state.shape === 1 || state.shape === 2 ? reportValue(t("height2"), fmt(n(state.height2)), "m") : ""}
           ${reportValue(t("doorArea"), fmt(n(state.doorArea)), "m²")}
           ${reportValue(t("windowArea"), fmt(n(state.windowArea)), "m²")}
+          ${n(state.targetTime) > 0 ? reportValue(t("target"), fmt(n(state.targetTime)), suffix) : ""}
         </div>
         <div class="pdf-inputs totals">
           ${reportValue(t("totalFloor"), fmt(floorArea()), "m²")}
@@ -1125,8 +1219,9 @@ function buildReportMarkup() {
       <h2>${t("calculation")}</h2>
       <div class="pdf-materials">${reportCalculationRows(c)}</div>
       <p class="pdf-type">${state.language === "en" ? "Calculation type 1" : "გამოთვლის ტიპი 1"}</p>
-      ${reportTable(t("reverberation"), c.reverberation, suffix)}
-      ${chartSvg(c.reverberation)}
+      ${reportRowsTable(t("reverberation"), presentation.rows, suffix)}
+      ${chartLegend(presentation.series)}
+      ${chartSvg(presentation.series)}
     </article>
 
     <article class="report-page explanation-page">
@@ -1189,6 +1284,9 @@ function printDocumentCss() {
     .report-table td, .report-table th { border: 1px solid #d8dce2; padding: 2px; font-size: 6.5px; text-align: center; overflow-wrap: anywhere; }
     .report-table th { background: #b6d7f5; font-weight: 600; }
     .report-table td:first-child, .report-table th:first-child { text-align: left; }
+    .chart-legend { display: flex; flex-wrap: wrap; gap: 2mm 4mm; margin: 2mm 0 1mm; font-size: 8px; }
+    .chart-legend span { display: inline-grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 1.5mm; }
+    .chart-legend i { width: 7mm; height: 1mm; border-radius: 99px; }
     .chart { display: block; width: 100%; max-width: 100%; height: 30mm; margin: 2mm 0 0; border: 1px solid #d8dce2; }
     .pdf-explainer { display: block; margin-top: 8mm; padding: 4mm; background: #d4d4d4; }
     .pdf-explainer h2 { font-size: 12px; margin: 0 0 3mm; }

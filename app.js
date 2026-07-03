@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "38";
+const APP_VERSION = "39";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -69,6 +69,9 @@ const text = {
     withoutAbsorber: "გამოთვლა 1 აბსორბერის გარეშე",
     withAbsorber: "გამოთვლა 1 აბსორბერით",
     target: "მიზანი",
+    targetName: "მიზნის სახელი",
+    targetNamePlaceholder: "მიზანი",
+    targetValue: "მიზანი",
     targetTime: "მიზანი",
     secondsShort: "წმ",
     average125: "საშუალო 125 ჰც-დან",
@@ -153,6 +156,9 @@ const text = {
     withoutAbsorber: "Calculation 1 Without absorber",
     withAbsorber: "Calculation 1 With absorber",
     target: "Target",
+    targetName: "Target name",
+    targetNamePlaceholder: "Target",
+    targetValue: "Target",
     targetTime: "Target",
     secondsShort: "sec",
     average125: "Average from 125 Hz",
@@ -180,6 +186,7 @@ const defaults = {
   project: "",
   shape: 0,
   resultType: 0,
+  targetName: "",
   targetTime: "",
   length: "",
   width: "",
@@ -642,6 +649,15 @@ function bindStaticInputs() {
     state.project = project.value;
     saveState();
   };
+  const targetName = document.getElementById("target-name");
+  if (targetName && document.activeElement !== targetName) targetName.value = state.targetName ?? "";
+  if (targetName) {
+    targetName.oninput = () => {
+      state.targetName = targetName.value;
+      saveState();
+      renderComputedOnly();
+    };
+  }
   const target = document.getElementById("target-time");
   if (target && document.activeElement !== target) target.value = state.targetTime ?? "";
   if (target) {
@@ -651,6 +667,8 @@ function bindStaticInputs() {
       renderComputedOnly();
     };
   }
+  const targetUnit = document.getElementById("target-unit");
+  if (targetUnit) targetUnit.textContent = state.resultType === 0 ? (state.language === "en" ? "sec" : "წმ") : "m² Sab";
 }
 
 function renderChoices() {
@@ -981,7 +999,8 @@ function missingMaterials(c) {
 
 function renderComputedOnly() {
   const c = computed();
-  document.querySelector(".target-field")?.classList.toggle("hidden", state.resultType !== 0);
+  const targetUnit = document.getElementById("target-unit");
+  if (targetUnit) targetUnit.textContent = state.resultType === 0 ? (state.language === "en" ? "sec" : "წმ") : "m² Sab";
   document.getElementById("floor-area").textContent = `${fmt(floorArea())} m²`;
   document.getElementById("wall-area").textContent = `${fmt(wallArea())} m²`;
   document.getElementById("ceiling-area").textContent = `${fmt(ceilingArea())} m²`;
@@ -1025,9 +1044,13 @@ function targetSeries() {
   return target > 0 ? freqs.map(() => target) : null;
 }
 
+function targetLabel() {
+  return state.targetName.trim() || t("target");
+}
+
 function resultPresentation(c, resultType = state.resultType) {
   const hasAbsorber = absorberAreaTotal() > 0;
-  const target = resultType === 0 ? targetSeries() : null;
+  const target = targetSeries();
   const values = resultType === 0 ? c.reverberation : c.absorption;
   const valuesWithout = resultType === 0 ? c.reverberationWithoutAbsorber : c.absorptionWithoutAbsorber;
   const rows = hasAbsorber
@@ -1036,14 +1059,14 @@ function resultPresentation(c, resultType = state.resultType) {
       {label: t("withAbsorber"), values}
     ]
     : [{label: t("calculation"), values}];
-  if (target) rows.push({label: t("target"), values: target});
+  if (target) rows.push({label: targetLabel(), values: target});
   const series = hasAbsorber
     ? [
       {label: t("withoutAbsorber"), values: valuesWithout, color: "#f39a00", dash: "10 8"},
       {label: t("withAbsorber"), values, color: "#078000", dash: "10 8"}
     ]
     : [{label: t("calculation"), values, color: "#f39a00", dash: "10 8"}];
-  if (target) series.push({label: t("target"), values: target, color: "#1437ff", dash: "10 8"});
+  if (target) series.push({label: targetLabel(), values: target, color: "#1437ff", dash: "10 8"});
   return {rows, series, values};
 }
 
@@ -1207,7 +1230,7 @@ function buildReportMarkup() {
           ${state.shape === 1 || state.shape === 2 ? reportValue(t("height2"), fmt(n(state.height2)), "m") : ""}
           ${reportValue(t("doorArea"), fmt(n(state.doorArea)), "m²")}
           ${reportValue(t("windowArea"), fmt(n(state.windowArea)), "m²")}
-          ${n(state.targetTime) > 0 ? reportValue(t("target"), fmt(n(state.targetTime)), suffix) : ""}
+          ${n(state.targetTime) > 0 ? reportValue(targetLabel(), fmt(n(state.targetTime)), suffix) : ""}
         </div>
         <div class="pdf-inputs totals">
           ${reportValue(t("totalFloor"), fmt(floorArea()), "m²")}

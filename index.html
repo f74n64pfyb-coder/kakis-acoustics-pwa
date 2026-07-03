@@ -10,7 +10,7 @@
     <title>Kaki's Acoustics</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/app-icon.png">
-    <link rel="stylesheet" href="style.css?v=38">
+    <link rel="stylesheet" href="style.css?v=39">
   </head>
   <body>
     <div class="app-shell">
@@ -79,13 +79,19 @@
           <p class="hint" data-i18n="resultHint">რევერბერაციის დრო T აჩვენებს რამდენ ხანს გრძელდება ხმა ოთახში. შთანთქმის ფართობი A აჩვენებს რამდენად შთანთქავს სივრცე ხმას.</p>
           <div id="warning" class="warning hidden"></div>
           <div id="result-type-buttons" class="choice-grid two"></div>
-          <label class="field target-field">
-            <span data-i18n="targetTime">მიზანი</span>
-            <div class="number-wrap">
-              <input id="target-time" inputmode="decimal" type="text" autocomplete="off" placeholder="0">
-              <em data-i18n="secondsShort">წმ</em>
-            </div>
-          </label>
+          <div class="target-row">
+            <label class="field target-name-field">
+              <span data-i18n="targetName">მიზნის სახელი</span>
+              <input id="target-name" type="text" autocomplete="off" data-i18n-placeholder="targetNamePlaceholder" placeholder="მიზანი">
+            </label>
+            <label class="field target-field">
+              <span data-i18n="targetValue">მიზანი</span>
+              <div class="number-wrap">
+                <input id="target-time" inputmode="decimal" type="text" autocomplete="off" placeholder="0">
+                <em id="target-unit">წმ</em>
+              </div>
+            </label>
+          </div>
           <button id="export-btn-secondary" class="primary-btn" type="button" data-i18n="exportPdf">PDF ექსპორტი</button>
           <div id="results-output"></div>
         </section>
@@ -119,8 +125,8 @@
       </label>
     </template>
 
-    <script src="materials.js?v=38"></script>
-    <script src="standard-materials.js?v=38"></script>
-    <script src="app.js?v=38"></script>
+    <script src="materials.js?v=39"></script>
+    <script src="standard-materials.js?v=39"></script>
+    <script src="app.js?v=39"></script>
   </body>
 </html>

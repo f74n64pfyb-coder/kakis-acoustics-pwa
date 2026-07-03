@@ -630,9 +630,16 @@ button.material-title:focus-visible {
   color: #fff;
 }
 
-.target-field {
-  max-width: 360px;
+.target-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr);
+  gap: 10px;
+  max-width: 660px;
   margin: 12px 0 14px;
+}
+
+.target-row .field {
+  margin: 0;
 }
 
 .chart-legend {
@@ -1372,6 +1379,10 @@ td:first-child, th:first-child {
     padding: 0;
     font-size: 14px;
     line-height: 1.25;
+  }
+
+  .target-row {
+    grid-template-columns: 1fr;
   }
 
   .remove-btn {

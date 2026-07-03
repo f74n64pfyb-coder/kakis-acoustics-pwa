@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "40";
+const APP_VERSION = "41";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -66,8 +66,8 @@ const text = {
     reverberation: "რევერბერაციის დრო T [წმ]",
     absorption: "შთანთქმის ფართობი A [m² Sab]",
     calculation: "გამოთვლა",
-    withoutAbsorber: "გამოთვლა 1 აბსორბერის გარეშე",
-    withAbsorber: "გამოთვლა 1 აბსორბერით",
+    withoutAbsorber: "აბსორბერის გარეშე",
+    withAbsorber: "აბსორბერით",
     target: "მიზანი",
     targetName: "მიზნის სახელი",
     targetNamePlaceholder: "მიზანი",
@@ -153,8 +153,8 @@ const text = {
     reverberation: "Reverberation time T [sec]",
     absorption: "Absorption area A [m² Sab]",
     calculation: "Calculation",
-    withoutAbsorber: "Calculation 1 Without absorber",
-    withAbsorber: "Calculation 1 With absorber",
+    withoutAbsorber: "Without absorber",
+    withAbsorber: "With absorber",
     target: "Target",
     targetName: "Target name",
     targetNamePlaceholder: "Target",
@@ -1038,7 +1038,9 @@ function resultTable(title, values, suffix) {
 }
 
 function resultRowsTable(title, rows, suffix) {
+  const colgroup = tableColgroup();
   return `<div class="table-wrap"><table>
+    ${colgroup}
     <tr><th>${title}</th>${freqs.map(f => `<th>${f} Hz</th>`).join("")}<th>${t("average125")}</th><th>${t("average250")}</th></tr>
     ${rows.map(row => `<tr><td>${esc(row.label)}</td>${row.values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(averageFrom(row.values, 125))}</td><td>${fmt(averageFrom(row.values, 250))}</td></tr>`).join("")}
   </table></div>`;
@@ -1133,10 +1135,24 @@ function reportTable(title, values, suffix) {
 }
 
 function reportRowsTable(title, rows, suffix) {
+  const colgroup = tableColgroup();
   return `<table class="report-table">
+    ${colgroup}
     <tr><th>${title}</th>${freqs.map(f => `<th>${f} Hz</th>`).join("")}<th>${t("average125")}</th><th>${t("average250")}</th></tr>
     ${rows.map(row => `<tr><td>${esc(row.label)}</td>${row.values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(averageFrom(row.values, 125))}</td><td>${fmt(averageFrom(row.values, 250))}</td></tr>`).join("")}
   </table>`;
+}
+
+function tableColgroup() {
+  const first = 24;
+  const average = 10.5;
+  const freqWidth = (100 - first - average * 2) / freqs.length;
+  return `<colgroup>
+    <col style="width:${first}%">
+    ${freqs.map(() => `<col style="width:${freqWidth}%">`).join("")}
+    <col style="width:${average}%">
+    <col style="width:${average}%">
+  </colgroup>`;
 }
 
 function coefficientGrid(kind, selection, source) {

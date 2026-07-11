@@ -178,22 +178,6 @@ main {
 
 .icon-btn.danger { color: var(--danger); }
 
-summary {
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 16px;
-  overflow-wrap: anywhere;
-}
-
-.manual-list {
-  margin: 12px 0 0;
-  padding-left: 24px;
-  display: grid;
-  gap: 8px;
-  color: #333;
-  line-height: 1.45;
-}
-
 .field {
   display: grid;
   gap: 7px;
@@ -1416,8 +1400,7 @@ td:first-child, th:first-child {
 
   .field > span,
   .material-title,
-  .metrics span,
-  .manual-list li {
+  .metrics span {
     overflow-wrap: anywhere;
   }
 

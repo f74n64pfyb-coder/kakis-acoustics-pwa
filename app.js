@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "44";
+const APP_VERSION = "45";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -7,13 +7,6 @@ const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "
 const text = {
   ka: {
     title: "აკუსტიკის კალკულატორი",
-    manual: "მომხმარებლის გზამკვლევი",
-    guide1: "ჩაწერე პროექტის სახელი, თუ გინდა PDF-ში გამოჩნდეს.",
-    guide2: "აირჩიე ჭერის ფორმა და შეიყვანე შესაბამისი ზომები.",
-    guide3: "კარისა და ფანჯრის ფართობები კედლის ფართობს ავტომატურად აკლდება.",
-    guide4: "მასალებში ჯერ აირჩიე ვარიანტი; არჩეული არ არის ნიშნავს 0 შთანთქმას.",
-    guide5: "თუ ზედაპირზე რამდენიმე მასალაა, დაამატე დამატებითი რიგი.",
-    guide7: "PDF-ისთვის გამოიყენე გაზიარების ღილაკი.",
     roomDimensions: "1. ოთახის ზომები",
     roomHint: "აქ შეყვანილი მონაცემებით ავტომატურად ითვლება იატაკის, კედლების, ჭერის ფართობი და ოთახის მოცულობა.",
     project: "პროექტი",
@@ -93,13 +86,6 @@ const text = {
   },
   en: {
     title: "Acoustics calculator",
-    manual: "User manual",
-    guide1: "Enter a project name if you want it shown in the PDF.",
-    guide2: "Select the ceiling shape and enter the required dimensions.",
-    guide3: "Door and window areas are automatically subtracted from wall area.",
-    guide4: "Select a material first; not selected means 0 absorption.",
-    guide5: "If one surface has several materials, add an extra row.",
-    guide7: "Use the share button for PDF export.",
     roomDimensions: "1. Room dimensions",
     roomHint: "The values entered here calculate the floor, wall, ceiling area and room volume automatically.",
     project: "Project",

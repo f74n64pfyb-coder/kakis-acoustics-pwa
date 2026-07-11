@@ -1175,7 +1175,6 @@ function renderResults(c) {
 }
 
 function chartSvg(series) {
-  if (!series.length) return "";
   const all = series.flatMap(item => item.values);
   const max = Math.max(1.4, ...all);
   const min = 0;

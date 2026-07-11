@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "41";
+const APP_VERSION = "44";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -85,8 +85,7 @@ const text = {
     improvementMid: "ზომიერი გაუმჯობესება",
     improvementSmall: "მცირე გაუმჯობესება",
     report: "აკუსტიკის ანგარიში",
-    printHint: "PDF-ის შესანახად აირჩიე Share/Print და Save to Files."
-    ,
+    printHint: "PDF-ის შესანახად აირჩიე Share/Print და Save to Files.",
     cancel: "გაუქმება",
     done: "დახურვა",
     search: "ძებნა",
@@ -172,8 +171,7 @@ const text = {
     improvementMid: "Moderate improvement",
     improvementSmall: "Small improvement",
     report: "Acoustics report",
-    printHint: "To save as PDF choose Share/Print and Save to Files."
-    ,
+    printHint: "To save as PDF choose Share/Print and Save to Files.",
     cancel: "Cancel",
     done: "Done",
     search: "Search",
@@ -186,6 +184,8 @@ const defaults = {
   project: "",
   shape: 0,
   resultType: 0,
+  measuredType: 0, 
+  calibrationType: -1, // შეიცვალა -1-ზე (ნაგულისხმევად გათიშულია)
   reverberationTargetName: "",
   reverberationTargetValue: "",
   absorptionTargetName: "",
@@ -299,7 +299,7 @@ function sanitizeName(name) {
     "Plastered walls": "შელესილი კედლები",
     "Door, light": "კარი, მსუბუქი",
     "Door, heavy": "კარი, მძიმე",
-    "Window (3+12+3 mm)": "ფანჯარა (3+12+3 მმ)",
+    "Window (3+12+3 mm)": "ფანჯარა (3+12+3 mm)",
     "Curtains, 340 g/m2": "ფარდა, 340 გ/მ2",
     "Curtains, 600 g/m2": "ფარდა, 600 გ/მ2",
     "Window (3 mm)": "ფანჯარა (3 მმ)",
@@ -333,11 +333,11 @@ function sanitizeName(name) {
 
 function materialOptions(kind) {
   const custom = {name: state.language === "en" ? "User defined" : "საკუთარი მასალა", values: freqs.map(() => 0), custom: true};
-  return [...MATERIALS[kind], custom, ...(window.STANDARD_ABSORPTION_MATERIALS || [])];
+  return [custom, ...MATERIALS[kind], ...(window.STANDARD_ABSORPTION_MATERIALS || [])];
 }
 
 function customIndex(kind) {
-  return MATERIALS[kind].length;
+  return 0;
 }
 
 function isCustomSelection(kind, selection) {
@@ -370,13 +370,6 @@ function customData(source) {
 
 function materialAt(kind, selection, source) {
   if (selection < 0) return null;
-  if (isCustomSelection(kind, selection)) {
-    const data = customData(source);
-    return {
-      name: data.name || (state.language === "en" ? "User defined" : "საკუთარი მასალა"),
-      values: freqs.map((_, index) => n(data.values[index]))
-    };
-  }
   return materialOptions(kind)[selection] || null;
 }
 
@@ -1039,18 +1032,41 @@ function resultTable(title, values, suffix) {
 
 function resultRowsTable(title, rows, suffix) {
   const colgroup = tableColgroup();
+  
+  const filteredRows = rows.filter(row => {
+    const label = row.label;
+    return label === t("withoutAbsorber") || 
+           label === "გაზომილი EDT" || label === "გაზომილი T20" || label === "გაზომილი T30" ||
+           label === t("withAbsorber") || label === t("calculation");
+  });
+
   return `<div class="table-wrap"><table>
     ${colgroup}
     <tr><th>${title}</th>${freqs.map(f => `<th>${f} Hz</th>`).join("")}<th>${t("average125")}</th><th>${t("average250")}</th></tr>
-    ${rows.map(row => `<tr><td>${esc(row.label)}</td>${row.values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(averageFrom(row.values, 125))}</td><td>${fmt(averageFrom(row.values, 250))}</td></tr>`).join("")}
+    ${filteredRows.map(row => `<tr><td>${esc(row.label)}</td>${row.values.map(v => `<td>${fmt(v)} ${suffix}</td>`).join("")}<td>${fmt(averageFrom(row.values, 125))}</td><td>${fmt(averageFrom(row.values, 250))}</td></tr>`).join("")}
   </table></div>`;
 }
 
-function absorberAreaTotal() {
-  const direct = rowsTotal(state.floorAbsorberRows) + rowsTotal(state.wallAbsorberRows) + rowsTotal(state.doorAbsorberRows) + rowsTotal(state.windowAbsorberRows) + rowsTotal(state.ceilingAbsorberRows);
-  const nested = [...state.extraFloorRows, ...state.extraWallRows, ...state.extraDoorRows, ...state.extraWindowRows, ...state.extraCeilingRows]
-    .reduce((total, row) => total + rowsTotal(row.absorberRows || []), 0);
-  return direct + nested;
+function hasSelectedAbsorberRows(rows) {
+  return rows.some(row => n(row.area) > 0 && Number(row.selection) >= 0);
+}
+
+function hasSelectedAbsorber() {
+  const directRows = [
+    ...state.floorAbsorberRows,
+    ...state.wallAbsorberRows,
+    ...state.doorAbsorberRows,
+    ...state.windowAbsorberRows,
+    ...state.ceilingAbsorberRows
+  ];
+  const nestedRows = [
+    ...state.extraFloorRows,
+    ...state.extraWallRows,
+    ...state.extraDoorRows,
+    ...state.extraWindowRows,
+    ...state.extraCeilingRows
+  ].flatMap(row => row.absorberRows || []);
+  return hasSelectedAbsorberRows(directRows) || hasSelectedAbsorberRows(nestedRows);
 }
 
 function targetSeries(resultType = state.resultType) {
@@ -1063,38 +1079,90 @@ function targetLabel(resultType = state.resultType) {
 }
 
 function resultPresentation(c, resultType = state.resultType) {
-  const hasAbsorber = absorberAreaTotal() > 0;
+  const hasAbsorber = hasSelectedAbsorber();
   const target = targetSeries(resultType);
   const values = resultType === 0 ? c.reverberation : c.absorption;
   const valuesWithout = resultType === 0 ? c.reverberationWithoutAbsorber : c.absorptionWithoutAbsorber;
+  
   const rows = hasAbsorber
-    ? [
-      {label: t("withoutAbsorber"), values: valuesWithout},
-      {label: t("withAbsorber"), values}
-    ]
+    ? [{label: t("withoutAbsorber"), values: valuesWithout}]
     : [{label: t("calculation"), values}];
-  if (target) rows.push({label: targetLabel(resultType), values: target});
   const series = hasAbsorber
-    ? [
-      {label: t("withoutAbsorber"), values: valuesWithout, color: "#f39a00", dash: "10 8"},
-      {label: t("withAbsorber"), values, color: "#078000", dash: "10 8"}
-    ]
-    : [{label: t("calculation"), values, color: "#f39a00", dash: "10 8"}];
-  if (target) series.push({label: targetLabel(resultType), values: target, color: "#1437ff", dash: "10 8"});
+    ? [{label: t("withoutAbsorber"), values: valuesWithout, color: "#f39a00", dash: "10 8"}]
+    : [];
+  
+  if (c.avgMeasured && resultType === 0) {
+    if (state.measuredType === 0 && c.avgMeasured.edt && c.avgMeasured.edt.some(v => v > 0)) {
+      rows.push({label: "გაზომილი EDT", values: c.avgMeasured.edt});
+      series.push({label: "გაზომილი EDT", values: c.avgMeasured.edt, color: "#8dd1e1"});
+    } else if (state.measuredType === 1 && c.avgMeasured.t20 && c.avgMeasured.t20.some(v => v > 0)) {
+      rows.push({label: "გაზომილი T20", values: c.avgMeasured.t20});
+      series.push({label: "გაზომილი T20", values: c.avgMeasured.t20, color: "#82ca9d"});
+    } else if (state.measuredType === 2 && c.avgMeasured.t30 && c.avgMeasured.t30.some(v => v > 0)) {
+      rows.push({label: "გაზომილი T30", values: c.avgMeasured.t30});
+      series.push({label: "გაზომილი T30", values: c.avgMeasured.t30, color: "#ff7300"});
+    }
+  }
+  
+  if (hasAbsorber) {
+    rows.push({label: t("withAbsorber"), values});
+    series.push({label: t("withAbsorber"), values, color: "#078000", dash: "10 8"});
+  }
+  
+  if (hasAbsorber && target) {
+    series.push({label: t("target"), values: target, color: "#1437ff"});
+  }
+  
   return {rows, series, values};
 }
 
 function chartLegend(series) {
+  if (!series.length) return "";
   return `<div class="chart-legend">${series.map(item => `
     <span><i style="background:${item.color}"></i>${esc(item.label)}</span>
   `).join("")}</div>`;
 }
 
+window.setMeasuredType = function(typeIndex) {
+  state.measuredType = Number(typeIndex);
+  saveState();
+  renderComputedOnly(); 
+};
+
 function renderResults(c) {
   const output = document.getElementById("results-output");
   const {rows, series, values} = resultPresentation(c);
   const suffix = state.resultType === 0 ? (state.language === "en" ? "sec" : "წმ") : "m² Sab";
+  
+  let tabsHtml = "";
+  let stiHtml = "";
+  
+  if (state.measuredFiles && state.measuredFiles.length > 0 && state.resultType === 0) {
+    tabsHtml = `
+      <div style="display: flex; gap: 4px; background: #f8fafc; padding: 4px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+        <button type="button" onclick="window.setMeasuredType(0)" style="flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; background: ${state.measuredType === 0 ? '#f97316' : 'transparent'}; color: ${state.measuredType === 0 ? '#fff' : '#64748b'}; font-weight: 600; font-size: 14px;">EDT</button>
+        <button type="button" onclick="window.setMeasuredType(1)" style="flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; background: ${state.measuredType === 1 ? '#f97316' : 'transparent'}; color: ${state.measuredType === 1 ? '#fff' : '#64748b'}; font-weight: 600; font-size: 14px;">T20</button>
+        <button type="button" onclick="window.setMeasuredType(2)" style="flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; background: ${state.measuredType === 2 ? '#f97316' : 'transparent'}; color: ${state.measuredType === 2 ? '#fff' : '#64748b'}; font-weight: 600; font-size: 14px;">T30</button>
+      </div>
+    `;
+
+    stiHtml = `
+      <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+        <div style="flex: 1; background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Simulated STI</div>
+          <div style="font-size: 18px; font-weight: 700; color: #0f172a;">${c.stiSimulated_With ? c.stiSimulated_With.toFixed(2) : "0.00"}</div>
+        </div>
+        <div style="flex: 1; background: #f0f9ff; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #bae6fd;">
+          <div style="font-size: 12px; color: #0284c7; margin-bottom: 4px;">Measured STI</div>
+          <div style="font-size: 18px; font-weight: 700; color: #0369a1;">${c.stiMeasured ? c.stiMeasured.toFixed(2) : "0.00"}</div>
+        </div>
+      </div>
+    `;
+  }
+
   output.innerHTML = `
+    ${tabsHtml}
+    ${stiHtml}
     <h3>${state.resultType === 0 ? t("reverberation") : t("absorption")}</h3>
     ${resultRowsTable(state.resultType === 0 ? t("reverberation") : t("absorption"), rows, suffix)}
     ${chartLegend(series)}
@@ -1107,25 +1175,36 @@ function renderResults(c) {
 }
 
 function chartSvg(series) {
+  if (!series.length) return "";
   const all = series.flatMap(item => item.values);
-  const max = Math.max(0.1, ...all);
-  const min = Math.min(0, ...all);
+  const max = Math.max(1.4, ...all);
+  const min = 0;
   const range = max - min || 1;
   const step = freqs.length > 1 ? 522 / (freqs.length - 1) : 0;
+  
   const points = values => values.map((v, i) => {
     const x = 48 + i * step;
     const y = 205 - ((v - min) / range) * 165;
     return [x, y];
   });
+  
   const line = pts => pts.map((p, i) => `${i ? "L" : "M"}${p[0]},${p[1]}`).join(" ");
+  const yTicks = [0.2, 0.5, 0.8, 1.1, 1.4];
+
   return `<svg class="chart" viewBox="0 0 600 250" role="img">
-    <line x1="42" y1="205" x2="570" y2="205" stroke="#d5d8de"/>
-    <line x1="42" y1="35" x2="42" y2="205" stroke="#d5d8de"/>
-    ${freqs.map((f, i) => `<text x="${48 + i * step}" y="230" font-size="12" text-anchor="middle" fill="#666">${f}</text>`).join("")}
+    ${yTicks.map(yVal => {
+      const yPos = 205 - ((yVal - min) / range) * 165;
+      return `<line x1="42" y1="${yPos}" x2="570" y2="${yPos}" stroke="#f0f1f4" stroke-width="1"/>
+              <text x="32" y="${yPos + 4}" font-size="11" text-anchor="end" fill="#555">${yVal.toFixed(1)}</text>`;
+    }).join("")}
+    <line x1="42" y1="205" x2="570" y2="205" stroke="#ccc" stroke-width="1"/>
+    <line x1="42" y1="35" x2="42" y2="205" stroke="#ccc" stroke-width="1"/>
+    ${freqs.map((f, i) => `<text x="${48 + i * step}" y="225" font-size="11" text-anchor="middle" fill="#555">${f}</text>`).join("")}
     ${series.map(item => {
       const pts = points(item.values);
-      return `<path d="${line(pts)}" fill="none" stroke="${item.color}" stroke-width="4" stroke-dasharray="${item.dash || ""}"/>
-        ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="7" fill="#fff" stroke="${item.color}" stroke-width="4"/>`).join("")}`;
+      const strokeDash = item.dash || ""; 
+      return `<path d="${line(pts)}" fill="none" stroke="${item.color}" stroke-width="1.8" stroke-dasharray="${strokeDash}"/>
+        ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#fff" stroke="${item.color}" stroke-width="1.8"/>`).join("")}`;
     }).join("")}
   </svg>`;
 }
@@ -1260,7 +1339,7 @@ function buildReportMarkup() {
           ${reportValue(t("windowArea"), fmt(n(state.windowArea)), "m²")}
           ${n(state.reverberationTargetValue) > 0 ? reportValue(targetLabel(0), fmt(n(state.reverberationTargetValue)), suffix) : ""}
         </div>
-        <div class="pdf-inputs totals">
+        <div class="pdf-top-grid totals">
           ${reportValue(t("totalFloor"), fmt(floorArea()), "m²")}
           ${reportValue(t("totalWall"), fmt(wallArea()), "m²")}
           ${reportValue(t("totalCeiling"), fmt(ceilingArea()), "m²")}
@@ -1503,3 +1582,189 @@ async function resetAppCacheIfRequested() {
 resetAppCacheIfRequested().then(resetting => {
   if (!resetting) render();
 });
+
+// ==========================================================================
+// 🛠️ აკუსტიკური გაზომვების საინჟინრო ძრავა
+// ==========================================================================
+
+const MeasurementEngine = {
+  parseFile(fileText, fileName) {
+    const lines = fileText.split('\n');
+    const data = { name: fileName, edt: [], t20: [], t30: [], snr: [] };
+    let inOctaveSection = false;
+    for (let line of lines) {
+      if (line.startsWith("Octave Band")) { inOctaveSection = true; continue; }
+      if (inOctaveSection && (line.startsWith("1/3 Octave") || line.trim() === "")) { inOctaveSection = false; }
+      if (inOctaveSection) {
+        const tokens = line.trim().split(/\s+/);
+        const freq = tokens[0];
+        if (freqs.includes(freq)) {
+          data.edt.push(parseFloat((tokens[1] || "0").replace(',', '.')));
+          data.t20.push(parseFloat((tokens[2] || "0").replace(',', '.')));
+          data.t30.push(parseFloat((tokens[3] || "0").replace(',', '.')));
+          data.snr.push(parseFloat((tokens[7] || "0").replace(',', '.')));
+        }
+      }
+    }
+    return data;
+  },
+  getAverageProfile(files) {
+    if (!files || files.length === 0) return null;
+    const avg = { edt: new Array(freqs.length).fill(0), t20: new Array(freqs.length).fill(0), t30: new Array(freqs.length).fill(0), snr: new Array(freqs.length).fill(0) };
+    for (let i = 0; i < freqs.length; i++) {
+      let sEDT = 0, sT20 = 0, sT30 = 0, sSNR = 0;
+      files.forEach(f => { sEDT += f.edt[i] || 0; sT20 += f.t20[i] || 0; sT30 += f.t30[i] || 0; sSNR += f.snr[i] || 0; });
+      avg.edt[i] = sEDT / files.length; avg.t20[i] = sT20 / files.length; avg.t30[i] = sT30 / files.length; avg.snr[i] = sSNR / files.length;
+    }
+    return avg;
+  },
+  calculateSTI(rt60Array, snrArray) {
+    const weights = [0.13, 0.14, 0.11, 0.12, 0.19, 0.17, 0.14];
+    const targetFreqs = ["125", "250", "500", "1000", "2000", "4000", "8000"];
+    let totalSTI = 0, weightSum = 0;
+    targetFreqs.forEach((freqStr, idx) => {
+      const freqIdx = freqs.indexOf(freqStr); if (freqIdx === -1) return;
+      const rt = rt60Array[freqIdx] || 0.05;
+      const snr = snrArray ? snrArray[freqIdx] : 30;
+      const m_rt = 1 / Math.sqrt(1 + Math.pow((2 * Math.PI * 4.0 * rt) / 13.8, 2));
+      const m_noise = 1 / (1 + Math.pow(10, -snr / 10));
+      const m_total = m_rt * m_noise;
+      let snrEff = 10 * Math.log10(m_total / (1 - m_total + 1e-6));
+      snrEff = Math.min(15, Math.max(-15, snrEff));
+      totalSTI += weights[idx] * ((snrEff + 15) / 30);
+      weightSum += weights[idx];
+    });
+    return weightSum > 0 ? Math.min(1, Math.max(0, totalSTI / weightSum)) : 0;
+  }
+};
+
+state.measuredFiles = state.measuredFiles || [];
+
+text.ka.measurementsTitle = "აკუსტიკური გაზომვები";
+text.ka.measurementsHint = "ატვირთეთ AudioTools-ის .txt ფაილები რეალური კალიბრაციისთვის.";
+text.ka.uploadFiles = "ფაილების ატვირთვა";
+text.ka.measuredLineLabel = "გაზომილი რეალური";
+text.ka.simulatedLineLabel = "სიმულაცია";
+
+text.en.measurementsTitle = "Acoustic Measurements";
+text.en.measurementsHint = "Upload AudioTools .txt files for real room calibration.";
+text.en.uploadFiles = "Upload Files";
+text.en.measuredLineLabel = "Measured Real";
+text.en.simulatedLineLabel = "Simulation";
+
+if (!text[state.language].measuredLineLabel) { text[state.language].measuredLineLabel = state.language === "en" ? "Measured Real" : "გაზომილი რეალური"; }
+if (!text[state.language].simulatedLineLabel) { text[state.language].simulatedLineLabel = state.language === "en" ? "Simulation" : "სიმულაცია"; }
+
+const originalComputed = computed;
+computed = function() {
+  const c = originalComputed();
+  const avgMeasured = MeasurementEngine.getAverageProfile(state.measuredFiles);
+  
+  if (avgMeasured && state.calibrationType !== -1) {
+    const deltaA = freqs.map(() => 0);
+    const vol = volume();
+    const calKey = state.calibrationType === 0 ? 'edt' : (state.calibrationType === 1 ? 't20' : 't30');
+    
+    freqs.forEach((_, i) => {
+      const realT = avgMeasured[calKey] ? avgMeasured[calKey][i] : 0;
+      if (realT > 0 && c.absorptionWithoutAbsorber) {
+        const realA = (0.16 * vol) / realT;
+        deltaA[i] = Math.max(0, realA - c.absorptionWithoutAbsorber[i]);
+      }
+    });
+    
+    if (c.absorptionWithoutAbsorber && c.absorption) {
+      c.absorptionWithoutAbsorber = c.absorptionWithoutAbsorber.map((a, i) => Math.max(0.1, a + deltaA[i]));
+      c.absorption = c.absorption.map((a, i) => Math.max(0.1, a + deltaA[i]));
+      c.reverberationWithoutAbsorber = c.absorptionWithoutAbsorber.map(a => a === 0 ? 0 : Math.max(0.05, 0.16 * vol / a));
+      c.reverberation = c.absorption.map(a => a === 0 ? 0 : Math.max(0.05, 0.16 * vol / a));
+    }
+  }
+  
+  c.avgMeasured = avgMeasured;
+  if (c.reverberationWithoutAbsorber) c.stiSimulated_Without = MeasurementEngine.calculateSTI(c.reverberationWithoutAbsorber, null);
+  if (c.reverberation) c.stiSimulated_With = MeasurementEngine.calculateSTI(c.reverberation, null);
+  if (avgMeasured && avgMeasured.t30 && avgMeasured.snr) c.stiMeasured = MeasurementEngine.calculateSTI(avgMeasured.t30, avgMeasured.snr);
+  
+  return c;
+};
+
+window.injectEngineeringUI = function() {
+  const targetOutput = document.getElementById("results-output");
+  if (!targetOutput) return;
+
+  let panel = document.getElementById("engineering-panel");
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.id = "engineering-panel";
+    panel.style.cssText = "margin-bottom: 20px; padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;";
+    targetOutput.parentNode.insertBefore(panel, targetOutput);
+  }
+
+  const isEn = state.language === "en";
+
+  panel.innerHTML = `
+    <h4 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b;">${t("measurementsTitle")}</h4>
+    <p style="font-size: 0.8rem; color: #64748b; margin: 0 0 12px 0; line-height: 1.3;">${t("measurementsHint")}</p>
+    
+    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+      <button type="button" onclick="document.getElementById('audio-files-input').click()" style="padding: 6px 12px; font-size: 0.85rem; background: #0284c7; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
+        ${t("uploadFiles")}
+      </button>
+      <input type="file" id="audio-files-input" multiple accept=".txt" onchange="window.handleAudioFilesUpload(event)" style="display: none;">
+      ${state.measuredFiles.length > 0 ? `<button type="button" onclick="window.clearAudioFiles()" style="color: #ef4444; background: none; border: none; cursor: pointer; font-size: 0.85rem;">✕</button>` : ""}
+    </div>
+
+    ${state.measuredFiles.length > 0 ? `
+      <div style="font-size: 0.85rem; color: #334155; margin-bottom: 10px;">
+        📌 ${isEn ? "Uploaded" : "ატვირთულია"}: <strong>${state.measuredFiles.length} ${isEn ? "positions" : "პოზიცია"}</strong>
+      </div>
+      
+      <div>
+        <label style="font-size: 0.8rem; color: #475569; display: block; margin-bottom: 4px;">${isEn ? "Calibration Method:" : "კალიბრაციის მეთოდი:"}</label>
+        <select onchange="window.setCalType(this.value)" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff;">
+          <option value="-1" ${state.calibrationType == -1 ? 'selected' : ''}>${isEn ? "Select (Off)" : "არჩევა (გათიშული)"}</option>
+          <option value="0" ${state.calibrationType == 0 ? 'selected' : ''}>EDT</option>
+          <option value="1" ${state.calibrationType == 1 ? 'selected' : ''}>T20</option>
+          <option value="2" ${state.calibrationType == 2 ? 'selected' : ''}>T30</option>
+        </select>
+      </div>
+    ` : ""}
+  `;
+};
+
+window.handleAudioFilesUpload = function(event) {
+  const files = Array.from(event.target.files); if (files.length === 0) return;
+  let loaded = 0; const newFilesData = [];
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      newFilesData.push(MeasurementEngine.parseFile(e.target.result, file.name));
+      loaded++;
+      if (loaded === files.length) {
+        state.measuredFiles = [...state.measuredFiles, ...newFilesData];
+        saveState(); renderComputedOnly(); window.injectEngineeringUI();
+      }
+    };
+    reader.readAsText(file);
+  });
+};
+
+window.clearAudioFiles = function() {
+  state.measuredFiles = []; saveState(); renderComputedOnly(); window.injectEngineeringUI();
+};
+
+const originalRenderComputedOnly = renderComputedOnly;
+renderComputedOnly = function() {
+  if (typeof originalRenderComputedOnly === "function") originalRenderComputedOnly();
+  if (typeof window.injectEngineeringUI === "function") window.injectEngineeringUI();
+};
+
+setTimeout(window.injectEngineeringUI, 600);
+
+window.setCalType = function(type) {
+  state.calibrationType = Number(type);
+  saveState();
+  renderComputedOnly();
+  window.injectEngineeringUI();
+};

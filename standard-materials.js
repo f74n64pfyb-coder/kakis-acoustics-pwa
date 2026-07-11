@@ -1,16 +1,5 @@
 const standardRows = [
   [
-    "Transparent",
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0
-  ],
-  [
     "100% absorbent",
     1.0,
     1.0,

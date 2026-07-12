@@ -955,9 +955,9 @@ td:first-child, th:first-child {
 }
 
 .pdf-coefficient-grid {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
   max-width: 100%;
 }
 
@@ -969,6 +969,12 @@ td:first-child, th:first-child {
   font-size: 9px;
   line-height: 1.08;
   white-space: nowrap;
+}
+
+.pdf-coefficient-grid span + span {
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid #aeb6c1;
 }
 
 .pdf-coefficient-grid b {
@@ -1742,12 +1748,18 @@ td:first-child, th:first-child {
   }
   .pdf-coefficient-grid {
     max-width: 100%;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 1mm;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
   }
   .pdf-coefficient-grid span {
     font-size: 7px;
     white-space: nowrap;
+  }
+  .pdf-coefficient-grid span + span {
+    margin-left: 2mm;
+    padding-left: 2mm;
+    border-left: 1px solid #aeb6c1;
   }
   .report-table {
     width: 100%;

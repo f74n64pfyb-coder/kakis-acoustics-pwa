@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "67";
+const APP_VERSION = "69";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1407,7 +1407,6 @@ function buildReportMarkup() {
           ${state.shape === 1 || state.shape === 2 ? reportValue(t("height2"), fmt(n(state.height2)), "m") : ""}
           ${reportValue(t("doorArea"), fmt(n(state.doorArea)), "m²")}
           ${reportValue(t("windowArea"), fmt(n(state.windowArea)), "m²")}
-          ${n(state.reverberationTargetValue) > 0 ? reportValue(targetLabel(0), fmt(n(state.reverberationTargetValue)), suffix) : ""}
         </div>
         <div class="pdf-top-grid totals">
           ${reportValue(t("totalFloor"), fmt(floorArea()), "m²")}
@@ -1479,8 +1478,9 @@ function printDocumentCss() {
     .pdf-material-top strong { font-size: 9px; font-weight: 700; overflow-wrap: anywhere; }
     .pdf-material-top span, .pdf-material-top em { font-size: 7.5px; font-style: normal; overflow-wrap: anywhere; }
     .pdf-coefficients { margin-top: 1mm; padding: 0; }
-    .pdf-coefficient-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 1mm; max-width: 100%; }
+    .pdf-coefficient-grid { display: flex; flex-wrap: wrap; gap: 0; max-width: 100%; }
     .pdf-coefficient-grid span { display: flex; gap: 1px; align-items: baseline; min-width: 0; font-size: 7px; line-height: 1.08; white-space: nowrap; }
+    .pdf-coefficient-grid span + span { margin-left: 2mm; padding-left: 2mm; border-left: 1px solid #aeb6c1; }
     .pdf-coefficient-grid b { font-weight: 500; }
     .pdf-coefficient-grid em { font-style: normal; }
     .report-table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 2mm; }

@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "51";
+const APP_VERSION = "52";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1070,10 +1070,6 @@ function measuredLabel(typeIndex) {
   return state.language === "en" ? `Measured ${method}` : `გაზომილი ${method}`;
 }
 
-function chartUnit() {
-  return state.resultType === 0 ? (state.language === "en" ? "sec" : "წმ") : "m² Sab";
-}
-
 function resultPresentation(c, resultType = state.resultType) {
   const hasAbsorber = hasSelectedAbsorber();
   const target = targetSeries(resultType);
@@ -1194,7 +1190,6 @@ function chartSvg(series) {
     }).join("")}
     <line x1="42" y1="205" x2="570" y2="205" stroke="#ccc" stroke-width="1"/>
     <line x1="42" y1="35" x2="42" y2="205" stroke="#ccc" stroke-width="1"/>
-    <text x="48" y="24" font-size="11" text-anchor="start" fill="#555">${chartUnit()}</text>
     ${freqs.map((f, i) => `<text x="${48 + i * step}" y="225" font-size="11" text-anchor="middle" fill="#555">${f}</text>`).join("")}
     ${series.map(item => {
       const pts = points(item.values);

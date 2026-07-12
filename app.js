@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "49";
+const APP_VERSION = "50";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1018,11 +1018,12 @@ function resultTable(title, values, suffix) {
 
 function resultRowsTable(title, rows, suffix) {
   const colgroup = tableColgroup();
+  const measuredLabels = ["გაზომილი EDT", "გაზომილი T20", "გაზომილი T30", "Measured EDT", "Measured T20", "Measured T30"];
   
   const filteredRows = rows.filter(row => {
     const label = row.label;
     return label === t("withoutAbsorber") || 
-           label === "გაზომილი EDT" || label === "გაზომილი T20" || label === "გაზომილი T30" ||
+           measuredLabels.includes(label) ||
            label === t("withAbsorber") || label === t("calculation");
   });
 
@@ -1064,6 +1065,15 @@ function targetLabel(resultType = state.resultType) {
   return String(state[targetNameKey(resultType)] || "").trim() || t("target");
 }
 
+function measuredLabel(typeIndex) {
+  const method = ["EDT", "T20", "T30"][Number(typeIndex)] || "EDT";
+  return state.language === "en" ? `Measured ${method}` : `გაზომილი ${method}`;
+}
+
+function chartUnit() {
+  return state.resultType === 0 ? (state.language === "en" ? "sec" : "წმ") : "m² Sab";
+}
+
 function resultPresentation(c, resultType = state.resultType) {
   const hasAbsorber = hasSelectedAbsorber();
   const target = targetSeries(resultType);
@@ -1079,14 +1089,14 @@ function resultPresentation(c, resultType = state.resultType) {
   
   if (c.avgMeasured && resultType === 0) {
     if (state.measuredType === 0 && c.avgMeasured.edt && c.avgMeasured.edt.some(v => v > 0)) {
-      rows.push({label: "გაზომილი EDT", values: c.avgMeasured.edt});
-      series.push({label: "გაზომილი EDT", values: c.avgMeasured.edt, color: "#8dd1e1"});
+      rows.push({label: measuredLabel(0), values: c.avgMeasured.edt});
+      series.push({label: measuredLabel(0), values: c.avgMeasured.edt, color: "#8dd1e1"});
     } else if (state.measuredType === 1 && c.avgMeasured.t20 && c.avgMeasured.t20.some(v => v > 0)) {
-      rows.push({label: "გაზომილი T20", values: c.avgMeasured.t20});
-      series.push({label: "გაზომილი T20", values: c.avgMeasured.t20, color: "#82ca9d"});
+      rows.push({label: measuredLabel(1), values: c.avgMeasured.t20});
+      series.push({label: measuredLabel(1), values: c.avgMeasured.t20, color: "#82ca9d"});
     } else if (state.measuredType === 2 && c.avgMeasured.t30 && c.avgMeasured.t30.some(v => v > 0)) {
-      rows.push({label: "გაზომილი T30", values: c.avgMeasured.t30});
-      series.push({label: "გაზომილი T30", values: c.avgMeasured.t30, color: "#ff7300"});
+      rows.push({label: measuredLabel(2), values: c.avgMeasured.t30});
+      series.push({label: measuredLabel(2), values: c.avgMeasured.t30, color: "#ff7300"});
     }
   }
   
@@ -1184,6 +1194,7 @@ function chartSvg(series) {
     }).join("")}
     <line x1="42" y1="205" x2="570" y2="205" stroke="#ccc" stroke-width="1"/>
     <line x1="42" y1="35" x2="42" y2="205" stroke="#ccc" stroke-width="1"/>
+    <text x="48" y="24" font-size="11" text-anchor="start" fill="#555">${chartUnit()}</text>
     ${freqs.map((f, i) => `<text x="${48 + i * step}" y="225" font-size="11" text-anchor="middle" fill="#555">${f}</text>`).join("")}
     ${series.map(item => {
       const pts = points(item.values);
@@ -1748,7 +1759,8 @@ renderComputedOnly = function() {
 setTimeout(window.injectEngineeringUI, 600);
 
 window.setCalType = function(type) {
-  state.calibrationType = Number(type);
+  const value = Number(type);
+  state.calibrationType = [0, 1, 2].includes(value) ? value : -1;
   saveState();
   renderComputedOnly();
   window.injectEngineeringUI();

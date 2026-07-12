@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "71";
+const APP_VERSION = "72";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1309,16 +1309,8 @@ function coefficientGrid(kind, selection, source) {
   const material = materialAt(kind, selection, source);
   if (!material) return "";
   return `<div class="pdf-coefficient-grid">${expandedCoefficients(material.values).map((value, index) => `
-    <span><em>${fmt(value)}</em></span>
+    <span><b>${freqs[index]} Hz</b><em>${fmt(value)}</em></span>
   `).join("")}</div>`;
-}
-
-function reportFrequencyHeader() {
-  const label = state.language === "en" ? "Frequency" : "სიხშირე";
-  return `<div class="pdf-frequency-header">
-    <strong>${label}</strong>
-    <div>${freqs.map(freq => `<span>${freq} Hz</span>`).join("")}</div>
-  </div>`;
 }
 
 function selectedMaterialName(kind, selection, source) {
@@ -1381,7 +1373,7 @@ function reportCalculationRows(c) {
         <div class="pdf-coefficients">${row[3] || ""}</div>
       </div>
     `).join("");
-  return `${reportFrequencyHeader()}<div class="pdf-materials">${reportRows}</div>`;
+  return `<div class="pdf-materials">${reportRows}</div>`;
 }
 
 function reportValue(label, value, unit = "") {
@@ -1490,9 +1482,9 @@ function printDocumentCss() {
     .pdf-material-top span, .pdf-material-top em { font-size: 7.5px; font-style: normal; overflow-wrap: anywhere; }
     .pdf-coefficients { margin-top: 1mm; padding: 0; }
     .pdf-coefficient-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); width: 100mm; max-width: 100%; margin: 0 auto; gap: 0; }
-    .pdf-coefficient-grid span { display: flex; justify-content: center; gap: 1px; align-items: baseline; min-width: 0; font-size: 7px; line-height: 1.08; white-space: nowrap; }
+    .pdf-coefficient-grid span { display: flex; flex-direction: column; justify-content: center; gap: 0.4mm; align-items: center; min-width: 0; font-size: 7px; line-height: 1.08; white-space: nowrap; }
     .pdf-coefficient-grid span + span { border-left: 1px solid #aeb6c1; }
-    .pdf-coefficient-grid b { font-weight: 500; }
+    .pdf-coefficient-grid b { font-size: 6px; font-weight: 500; }
     .pdf-coefficient-grid em { font-style: normal; }
     .report-table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 2mm; }
     .report-table td, .report-table th { border: 1px solid #d8dce2; padding: 2px; font-size: 6.5px; text-align: center; overflow-wrap: anywhere; }

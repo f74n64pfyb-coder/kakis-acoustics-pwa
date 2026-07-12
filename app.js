@@ -1,7 +1,7 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "63";
-const freqs = ["125", "250", "500", "1000", "2000", "4000"];
-const sourceFreqs = freqs;
+const APP_VERSION = "64";
+const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
+const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
 
 const text = {
@@ -389,16 +389,7 @@ function customData(source) {
 
 function materialAt(kind, selection, source) {
   if (selection < 0) return null;
-  const material = materialOptions(kind)[selection] || null;
-  if (material?.custom) {
-    const data = customData(source);
-    return {
-      ...material,
-      name: data.name || material.name,
-      values: data.values || emptyCustomValues()
-    };
-  }
-  return material;
+  return materialOptions(kind)[selection] || null;
 }
 
 function average(values) {
@@ -1118,16 +1109,6 @@ function measuredLabel(typeIndex) {
   return state.language === "en" ? `Measured ${method}` : `გაზომილი ${method}`;
 }
 
-function measuredValues(c, typeIndex, resultType = state.resultType) {
-  if (!c.avgMeasured) return null;
-  const key = ["edt", "t20", "t30"][Number(typeIndex)] || "edt";
-  const values = c.avgMeasured[key];
-  if (!values || !values.some(v => v > 0)) return null;
-  if (resultType === 0) return values;
-  const vol = volume();
-  return values.map(t => t > 0 ? (0.16 * vol) / t : 0);
-}
-
 function chartUnit() {
   return state.resultType === 0 ? (state.language === "en" ? "sec" : "წმ") : "m² Sab";
 }
@@ -1145,12 +1126,16 @@ function resultPresentation(c, resultType = state.resultType) {
     ? [{label: t("withoutAbsorber"), values: valuesWithout, color: "#f39a00", dash: "8 6"}]
     : [{label: t("calculation"), values, color: "#f39a00", dash: "8 6"}];
   
-  if (c.avgMeasured) {
-    const measured = measuredValues(c, state.measuredType, resultType);
-    const measuredColors = ["#a855f7", "#14b8a6", "#ef4444"];
-    if (measured) {
-      rows.push({label: measuredLabel(state.measuredType), values: measured});
-      series.push({label: measuredLabel(state.measuredType), values: measured, color: measuredColors[state.measuredType] || "#ef4444", dash: "8 6"});
+  if (c.avgMeasured && resultType === 0) {
+    if (state.measuredType === 0 && c.avgMeasured.edt && c.avgMeasured.edt.some(v => v > 0)) {
+      rows.push({label: measuredLabel(0), values: c.avgMeasured.edt});
+      series.push({label: measuredLabel(0), values: c.avgMeasured.edt, color: "#a855f7", dash: "8 6"});
+    } else if (state.measuredType === 1 && c.avgMeasured.t20 && c.avgMeasured.t20.some(v => v > 0)) {
+      rows.push({label: measuredLabel(1), values: c.avgMeasured.t20});
+      series.push({label: measuredLabel(1), values: c.avgMeasured.t20, color: "#14b8a6", dash: "8 6"});
+    } else if (state.measuredType === 2 && c.avgMeasured.t30 && c.avgMeasured.t30.some(v => v > 0)) {
+      rows.push({label: measuredLabel(2), values: c.avgMeasured.t30});
+      series.push({label: measuredLabel(2), values: c.avgMeasured.t30, color: "#ef4444", dash: "8 6"});
     }
   }
   
@@ -1187,7 +1172,7 @@ function renderResults(c) {
   let tabsHtml = "";
   let stiHtml = "";
   
-  if (state.measuredFiles && state.measuredFiles.length > 0) {
+  if (state.measuredFiles && state.measuredFiles.length > 0 && state.resultType === 0) {
     tabsHtml = `
       <div style="display: flex; gap: 4px; background: #f8fafc; padding: 4px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
         <button type="button" onclick="window.setMeasuredType(0)" style="flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; background: ${state.measuredType === 0 ? '#f97316' : 'transparent'}; color: ${state.measuredType === 0 ? '#fff' : '#64748b'}; font-weight: 600; font-size: 14px;">EDT</button>
@@ -1196,7 +1181,7 @@ function renderResults(c) {
       </div>
     `;
 
-    if (state.resultType === 0) stiHtml = `
+    stiHtml = `
       <div style="display: flex; gap: 15px; margin-bottom: 20px;">
         <div style="flex: 1; background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
           <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Simulated STI</div>
@@ -1231,17 +1216,27 @@ function chartSvg(series) {
     .map(Number)
     .filter(Number.isFinite)
     .filter(value => value >= 0);
-  const min = 0;
-  const numTicks = 5;
-  const rawMax = Math.max(...all, state.resultType === 0 ? 0.05 : 0.1);
-  const magnitude = Math.pow(10, Math.floor(Math.log10(rawMax)));
-  const normalizedStep = rawMax / magnitude / numTicks;
-  const niceStep = (normalizedStep <= 1 ? 1 : normalizedStep <= 2 ? 2 : normalizedStep <= 5 ? 5 : 10) * magnitude;
-  const max = niceStep * numTicks;
+  const values = all.length ? all : [0];
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const rawRange = Math.max(rawMax - rawMin, state.resultType === 0 ? 0.05 : 0.1);
+  // Uploaded measurements shown without calibration need a denser scale so
+  // the seconds axis keeps meaningful decimal labels instead of whole steps.
+  const targetTicks = state.resultType === 0 && state.measuredFiles?.length && state.calibrationType === -1 ? 8 : 5;
+  const niceStepFor = value => {
+    const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
+    const normalized = value / magnitude;
+    const niceNormalized = normalized < 1.5 ? 1 : normalized < 3.5 ? 2 : normalized < 7.5 ? 5 : 10;
+    return niceNormalized * magnitude;
+  };
+  const padding = rawRange * 0.15;
+  const niceStep = niceStepFor((rawRange + padding * 2) / targetTicks);
+  const min = Math.max(0, Math.floor(rawMin / niceStep) * niceStep);
+  const max = Math.ceil((rawMax + padding) / niceStep) * niceStep;
   const range = max - min;
   const xStep = freqs.length > 1 ? 522 / (freqs.length - 1) : 0;
-  const decimals = niceStep < 0.1 ? 2 : niceStep < 1 ? 1 : 0;
-  const tickLabel = value => Number(value.toFixed(decimals)).toFixed(decimals);
+  const decimals = niceStep < 0.1 ? 2 : 1;
+  const tickLabel = value => value.toFixed(decimals);
   
   const points = values => values.map((v, i) => {
     const x = 48 + i * xStep;
@@ -1252,8 +1247,9 @@ function chartSvg(series) {
   const line = pts => pts.map((p, i) => `${i ? "L" : "M"}${p[0]},${p[1]}`).join(" ");
   
   const yTicks = [];
-  for (let i = 1; i <= numTicks; i++) {
-    yTicks.push(niceStep * i);
+  const tickCount = Math.max(1, Math.round((max - min) / niceStep));
+  for (let i = 0; i <= tickCount; i++) {
+    yTicks.push(min + niceStep * i);
   }
 
   return `<svg class="chart" viewBox="0 0 600 250" role="img">

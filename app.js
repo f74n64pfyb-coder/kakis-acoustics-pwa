@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "59";
+const APP_VERSION = "60";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];

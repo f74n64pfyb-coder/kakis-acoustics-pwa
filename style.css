@@ -928,7 +928,9 @@ td:first-child, th:first-child {
 .pdf-frequency-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  margin: 0 0 4px;
+  width: 100mm;
+  max-width: 100%;
+  margin: 0 auto 4px;
   color: #333;
 }
 
@@ -979,14 +981,17 @@ td:first-child, th:first-child {
 }
 
 .pdf-coefficient-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  width: 100mm;
   gap: 0;
   max-width: 100%;
+  margin: 0 auto;
 }
 
 .pdf-coefficient-grid span {
   display: flex;
+  justify-content: center;
   gap: 1px;
   align-items: baseline;
   min-width: 0;
@@ -996,8 +1001,6 @@ td:first-child, th:first-child {
 }
 
 .pdf-coefficient-grid span + span {
-  margin-left: 8px;
-  padding-left: 8px;
   border-left: 1px solid #aeb6c1;
 }
 
@@ -1751,7 +1754,9 @@ td:first-child, th:first-child {
     gap: 2px;
   }
   .pdf-frequency-header {
-    margin: 0 0 1mm;
+    width: 100mm;
+    max-width: 100%;
+    margin: 0 auto 1mm;
   }
   .pdf-frequency-header strong {
     font-size: 7.5px;
@@ -1785,8 +1790,10 @@ td:first-child, th:first-child {
   }
   .pdf-coefficient-grid {
     max-width: 100%;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    width: 100mm;
+    margin: 0 auto;
     gap: 0;
   }
   .pdf-coefficient-grid span {
@@ -1794,8 +1801,6 @@ td:first-child, th:first-child {
     white-space: nowrap;
   }
   .pdf-coefficient-grid span + span {
-    margin-left: 2mm;
-    padding-left: 2mm;
     border-left: 1px solid #aeb6c1;
   }
   .report-table {

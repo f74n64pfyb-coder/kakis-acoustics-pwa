@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "70";
+const APP_VERSION = "71";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1478,7 +1478,7 @@ function printDocumentCss() {
     .pdf-field strong { min-width: 0; width: 100%; height: 15px; padding: 1px 3px; border: 1px solid #111; font-size: 9px; font-weight: 400; line-height: 12px; overflow: hidden; }
     .pdf-field em { font-size: 9px; font-style: normal; }
     .calculation-page h2, .pdf-type { margin: 3mm 0 1.5mm; font-size: 12px; font-weight: 400; }
-    .pdf-frequency-header { display: grid; grid-template-columns: minmax(0, 1fr); margin: 0 0 1mm; color: #333; }
+    .pdf-frequency-header { display: grid; grid-template-columns: minmax(0, 1fr); width: 100mm; max-width: 100%; margin: 0 auto 1mm; color: #333; }
     .pdf-frequency-header strong { text-align: center; font-size: 7.5px; }
     .pdf-frequency-header > div { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); margin-top: 0.5mm; }
     .pdf-frequency-header span { text-align: center; font-size: 6.5px; white-space: nowrap; }
@@ -1489,9 +1489,9 @@ function printDocumentCss() {
     .pdf-material-top strong { font-size: 9px; font-weight: 700; overflow-wrap: anywhere; }
     .pdf-material-top span, .pdf-material-top em { font-size: 7.5px; font-style: normal; overflow-wrap: anywhere; }
     .pdf-coefficients { margin-top: 1mm; padding: 0; }
-    .pdf-coefficient-grid { display: flex; flex-wrap: wrap; gap: 0; max-width: 100%; }
-    .pdf-coefficient-grid span { display: flex; gap: 1px; align-items: baseline; min-width: 0; font-size: 7px; line-height: 1.08; white-space: nowrap; }
-    .pdf-coefficient-grid span + span { margin-left: 2mm; padding-left: 2mm; border-left: 1px solid #aeb6c1; }
+    .pdf-coefficient-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); width: 100mm; max-width: 100%; margin: 0 auto; gap: 0; }
+    .pdf-coefficient-grid span { display: flex; justify-content: center; gap: 1px; align-items: baseline; min-width: 0; font-size: 7px; line-height: 1.08; white-space: nowrap; }
+    .pdf-coefficient-grid span + span { border-left: 1px solid #aeb6c1; }
     .pdf-coefficient-grid b { font-weight: 500; }
     .pdf-coefficient-grid em { font-style: normal; }
     .report-table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 2mm; }

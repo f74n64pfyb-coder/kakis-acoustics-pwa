@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "52";
+const APP_VERSION = "53";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1541,29 +1541,25 @@ document.getElementById("picker-backdrop").addEventListener("click", event => {
   if (event.target.id === "picker-backdrop") closeMaterialPicker();
 });
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register(`./service-worker.js?v=${APP_VERSION}`).then(registration => {
-    registration.update();
-  });
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  });
-}
-
-async function resetAppCacheIfRequested() {
-  const url = new URL(window.location.href);
-  if (url.searchParams.get("reset-cache") !== "1") return false;
+async function clearAppRuntimeCache() {
   if ("serviceWorker" in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(registrations.map(registration => registration.unregister()));
   }
   if ("caches" in window) {
     const keys = await caches.keys();
-    await Promise.all(keys.map(key => caches.delete(key)));
+    await Promise.all(
+      keys
+        .filter(key => key.includes("kakis-acoustics"))
+        .map(key => caches.delete(key))
+    );
   }
+}
+
+async function resetAppCacheIfRequested() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("reset-cache") !== "1") return false;
+  await clearAppRuntimeCache();
   url.searchParams.delete("reset-cache");
   url.searchParams.set("v", APP_VERSION);
   window.location.replace(url.toString());
@@ -1571,7 +1567,7 @@ async function resetAppCacheIfRequested() {
 }
 
 resetAppCacheIfRequested().then(resetting => {
-  if (!resetting) render();
+  if (!resetting) clearAppRuntimeCache().finally(render);
 });
 
 // ==========================================================================

@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "72";
+const APP_VERSION = "73";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1460,15 +1460,15 @@ function printDocumentCss() {
     .pdf-brand span { color: #777; font-size: 9px; }
     .calculation-page h1 { margin: 3mm 0 5mm; font-size: 15px; font-weight: 500; }
     .explanation-page h1 { margin: 0 0 8mm; font-size: 15px; font-weight: 500; }
-    .pdf-top-grid { display: grid; grid-template-columns: 48mm minmax(0, 1fr); gap: 3mm; width: 100%; max-width: 100%; align-items: start; }
-    .pdf-room-image { grid-column: 1; grid-row: 1; }
-    .pdf-room-image img { display: block; width: 48mm; max-width: 100%; height: 27mm; object-fit: contain; }
+    .pdf-top-grid { display: grid; grid-template-columns: 66mm minmax(0, 1fr); gap: 3mm; width: 100%; max-width: 100%; align-items: start; }
+    .pdf-room-image { grid-column: 1; grid-row: 1 / span 2; }
+    .pdf-room-image img { display: block; width: 64mm; max-width: 100%; height: 42mm; object-fit: contain; }
     .pdf-inputs { display: grid; grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
-    .pdf-top-grid.totals { grid-column: 1 / -1; }
+    .pdf-top-grid.totals { grid-column: 2; grid-row: 2; }
     .pdf-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 2px; min-width: 0; }
-    .pdf-field span { grid-column: 1 / -1; font-size: 9px; overflow-wrap: anywhere; }
-    .pdf-field strong { min-width: 0; width: 100%; height: 15px; padding: 1px 3px; border: 1px solid #111; font-size: 9px; font-weight: 400; line-height: 12px; overflow: hidden; }
-    .pdf-field em { font-size: 9px; font-style: normal; }
+    .pdf-field span { grid-column: 1 / -1; font-size: 7px; overflow-wrap: anywhere; }
+    .pdf-field strong { min-width: 0; width: 100%; height: 12px; padding: 1px 2px; border: 1px solid #111; font-size: 7.5px; font-weight: 400; line-height: 9px; overflow: hidden; }
+    .pdf-field em { font-size: 7px; font-style: normal; }
     .calculation-page h2, .pdf-type { margin: 3mm 0 1.5mm; font-size: 12px; font-weight: 400; }
     .pdf-frequency-header { display: grid; grid-template-columns: minmax(0, 1fr); width: 100mm; max-width: 100%; margin: 0 auto 1mm; color: #333; }
     .pdf-frequency-header strong { text-align: center; font-size: 7.5px; }
@@ -1493,7 +1493,7 @@ function printDocumentCss() {
     .chart-legend { display: flex; flex-wrap: wrap; gap: 1.5mm 3mm; margin: 1.5mm 0 1mm; font-size: 7.5px; }
     .chart-legend span { display: inline-grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 1.5mm; }
     .chart-legend i { width: 7mm; height: 1mm; border-radius: 99px; }
-    .chart { display: block; width: 100%; max-width: 100%; height: 28mm; margin: 1mm 0 0; border: 1px solid #d8dce2; }
+    .chart { display: block; width: 100%; max-width: 100%; height: 42mm; margin: 1mm 0 0; border: 1px solid #d8dce2; }
     .explanation-page { margin-top: 4mm; break-inside: avoid; }
     .explanation-page .pdf-brand, .explanation-page h1 { display: none; }
     .pdf-explainer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3mm; margin-top: 0; padding: 2.5mm; background: #d4d4d4; }

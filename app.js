@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "69";
+const APP_VERSION = "70";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1309,8 +1309,16 @@ function coefficientGrid(kind, selection, source) {
   const material = materialAt(kind, selection, source);
   if (!material) return "";
   return `<div class="pdf-coefficient-grid">${expandedCoefficients(material.values).map((value, index) => `
-    <span><b>${freqs[index]}hz</b><em>${fmt(value)}</em></span>
+    <span><em>${fmt(value)}</em></span>
   `).join("")}</div>`;
+}
+
+function reportFrequencyHeader() {
+  const label = state.language === "en" ? "Frequency" : "სიხშირე";
+  return `<div class="pdf-frequency-header">
+    <strong>${label}</strong>
+    <div>${freqs.map(freq => `<span>${freq} Hz</span>`).join("")}</div>
+  </div>`;
 }
 
 function selectedMaterialName(kind, selection, source) {
@@ -1328,42 +1336,40 @@ function extraRowsMissing(rows, label, absorberLabel, missing) {
 }
 
 function pushReportExtraRows(rows, totalArea, label, absorberLabel, kind, out) {
-  const data = rowContributionsWithAbsorbers(rows, totalArea);
-  data.materials.forEach(row => {
-    out.push([`${label} ${row.rowIndex + 1}`, row.area, selectedMaterialName(kind, row.selection, row), coefficientGrid(kind, row.selection, row)]);
-  });
-  data.absorbers.forEach(row => {
-    out.push([`${absorberLabel} ${row.parentIndex + 1}.${row.absorberIndex + 1}`, row.area, selectedMaterialName(kind, row.selection, row), coefficientGrid(kind, row.selection, row)]);
+  let remaining = Math.max(0, totalArea);
+  rows.forEach((row, rowIndex) => {
+    const grossArea = Math.min(Math.max(0, n(row.area)), remaining);
+    remaining -= grossArea;
+    if (grossArea <= 0) return;
+    const nestedAbsorbers = rowContributions(row.absorberRows || [], grossArea);
+    const absorberArea = nestedAbsorbers.reduce((total, absorber) => total + absorber.area, 0);
+    const materialArea = Math.max(0, grossArea - absorberArea);
+    if (materialArea > 0) {
+      out.push([`${label} ${rowIndex + 1}`, materialArea, selectedMaterialName(kind, row.selection, row), coefficientGrid(kind, row.selection, row)]);
+    }
+    nestedAbsorbers.forEach((absorber, absorberIndex) => {
+      out.push([`${absorberLabel} ${rowIndex + 1}.${absorberIndex + 1}`, absorber.area, selectedMaterialName(kind, absorber.selection, absorber), coefficientGrid(kind, absorber.selection, absorber)]);
+    });
   });
 }
 
 function reportCalculationRows(c) {
-  const rows = [
-    [t("floor"), c.primaryFloor, selectedMaterialName("floor", state.floorSelection, "floorSelection"), coefficientGrid("floor", state.floorSelection, "floorSelection")],
-    [t("wall"), c.primaryWall, selectedMaterialName("wall", state.wallSelection, "wallSelection"), coefficientGrid("wall", state.wallSelection, "wallSelection")],
-    [t("door"), c.primaryDoor, selectedMaterialName("door", state.doorSelection, "doorSelection"), coefficientGrid("door", state.doorSelection, "doorSelection")],
-    [t("window"), c.primaryWindow, selectedMaterialName("window", state.windowSelection, "windowSelection"), coefficientGrid("window", state.windowSelection, "windowSelection")],
-    [t("ceiling"), c.effectiveCeiling, selectedMaterialName("ceiling", state.ceilingSelection, "ceilingSelection"), coefficientGrid("ceiling", state.ceilingSelection, "ceilingSelection")]
-  ];
-
-  pushReportExtraRows(state.extraFloorRows, floorArea(), t("extraFloor"), t("extraFloorAbsorber"), "floor", rows);
-  pushReportExtraRows(state.extraWallRows, wallArea(), t("extraWall"), t("extraWallAbsorber"), "wall", rows);
-  pushReportExtraRows(state.extraDoorRows, n(state.doorArea), t("extraDoor"), t("extraDoorAbsorber"), "door", rows);
-  pushReportExtraRows(state.extraWindowRows, n(state.windowArea), t("extraWindow"), t("extraWindowAbsorber"), "window", rows);
-  pushReportExtraRows(state.extraCeilingRows, ceilingArea(), t("extraCeiling"), t("extraCeilingAbsorber"), "ceiling", rows);
-  [
-    [state.floorAbsorberRows, t("extraFloorAbsorber"), "floor"],
-    [state.wallAbsorberRows, t("extraWallAbsorber"), "wall"],
-    [state.doorAbsorberRows, t("extraDoorAbsorber"), "door"],
-    [state.windowAbsorberRows, t("extraWindowAbsorber"), "window"],
-    [state.ceilingAbsorberRows, t("extraCeilingAbsorber"), "ceiling"]
-  ].forEach(([absorberRows, label, kind]) => {
+  const rows = [];
+  const addSurface = (label, area, totalArea, kind, selection, source, absorberRows, absorberLabel, extraRows, extraLabel) => {
+    rows.push([label, area, selectedMaterialName(kind, selection, source), coefficientGrid(kind, selection, source)]);
     absorberRows.forEach((row, index) => {
-      if (n(row.area) > 0) rows.push([`${label} ${index + 1}`, n(row.area), selectedMaterialName(kind, row.selection, row), coefficientGrid(kind, row.selection, row)]);
+      if (n(row.area) > 0) rows.push([`${absorberLabel} ${index + 1}`, n(row.area), selectedMaterialName(kind, row.selection, row), coefficientGrid(kind, row.selection, row)]);
     });
-  });
+    pushReportExtraRows(extraRows, totalArea, extraLabel, absorberLabel, kind, rows);
+  };
 
-  return rows
+  addSurface(t("floor"), c.primaryFloor, floorArea(), "floor", state.floorSelection, "floorSelection", state.floorAbsorberRows, t("extraFloorAbsorber"), state.extraFloorRows, t("extraFloor"));
+  addSurface(t("wall"), c.primaryWall, wallArea(), "wall", state.wallSelection, "wallSelection", state.wallAbsorberRows, t("extraWallAbsorber"), state.extraWallRows, t("extraWall"));
+  addSurface(t("door"), c.primaryDoor, n(state.doorArea), "door", state.doorSelection, "doorSelection", state.doorAbsorberRows, t("extraDoorAbsorber"), state.extraDoorRows, t("extraDoor"));
+  addSurface(t("window"), c.primaryWindow, n(state.windowArea), "window", state.windowSelection, "windowSelection", state.windowAbsorberRows, t("extraWindowAbsorber"), state.extraWindowRows, t("extraWindow"));
+  addSurface(t("ceiling"), c.effectiveCeiling, ceilingArea(), "ceiling", state.ceilingSelection, "ceilingSelection", state.ceilingAbsorberRows, t("extraCeilingAbsorber"), state.extraCeilingRows, t("extraCeiling"));
+
+  const reportRows = rows
     .filter(row => row[1] > 0 || [t("floor"), t("wall"), t("ceiling")].includes(row[0]))
     .map(row => `
       <div class="pdf-material-row">
@@ -1375,6 +1381,7 @@ function reportCalculationRows(c) {
         <div class="pdf-coefficients">${row[3] || ""}</div>
       </div>
     `).join("");
+  return `${reportFrequencyHeader()}<div class="pdf-materials">${reportRows}</div>`;
 }
 
 function reportValue(label, value, unit = "") {
@@ -1416,7 +1423,7 @@ function buildReportMarkup() {
         </div>
       </div>
       <h2>${t("calculation")}</h2>
-      <div class="pdf-materials">${reportCalculationRows(c)}</div>
+      ${reportCalculationRows(c)}
       <p class="pdf-type">${state.language === "en" ? "Calculation type 1" : "გამოთვლის ტიპი 1"}</p>
       ${reportRowsTable(t("reverberation"), presentation.rows, suffix)}
       ${chartLegend(presentation.series)}
@@ -1471,6 +1478,10 @@ function printDocumentCss() {
     .pdf-field strong { min-width: 0; width: 100%; height: 15px; padding: 1px 3px; border: 1px solid #111; font-size: 9px; font-weight: 400; line-height: 12px; overflow: hidden; }
     .pdf-field em { font-size: 9px; font-style: normal; }
     .calculation-page h2, .pdf-type { margin: 3mm 0 1.5mm; font-size: 12px; font-weight: 400; }
+    .pdf-frequency-header { display: grid; grid-template-columns: minmax(0, 1fr); margin: 0 0 1mm; color: #333; }
+    .pdf-frequency-header strong { text-align: center; font-size: 7.5px; }
+    .pdf-frequency-header > div { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); margin-top: 0.5mm; }
+    .pdf-frequency-header span { text-align: center; font-size: 6.5px; white-space: nowrap; }
     .pdf-materials { display: grid; gap: 2px; width: 100%; }
     .pdf-material-row { background: #d3d3d3; padding: 1.8mm 2.2mm 1.5mm; break-inside: avoid; }
     .pdf-material-top { display: grid; grid-template-columns: minmax(0, 1fr) 16mm; gap: 2mm; align-items: baseline; }

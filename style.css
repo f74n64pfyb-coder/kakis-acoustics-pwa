@@ -925,6 +925,30 @@ td:first-child, th:first-child {
   gap: 8px;
 }
 
+.pdf-frequency-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0 0 4px;
+  color: #333;
+}
+
+.pdf-frequency-header strong {
+  text-align: center;
+  font-size: 12px;
+}
+
+.pdf-frequency-header > div {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  margin-top: 2px;
+}
+
+.pdf-frequency-header span {
+  text-align: center;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
 .pdf-material-row {
   background: #cfcfcf;
   padding: 7px 9px 6px;
@@ -1725,6 +1749,19 @@ td:first-child, th:first-child {
   }
   .pdf-materials {
     gap: 2px;
+  }
+  .pdf-frequency-header {
+    margin: 0 0 1mm;
+  }
+  .pdf-frequency-header strong {
+    font-size: 7.5px;
+  }
+  .pdf-frequency-header > div {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    margin-top: 0.5mm;
+  }
+  .pdf-frequency-header span {
+    font-size: 6.5px;
   }
   .pdf-material-row {
     padding: 1.8mm 2.2mm 1.5mm;

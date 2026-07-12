@@ -1,11 +1,11 @@
-const CACHE_NAME = "kakis-acoustics-v69";
+const CACHE_NAME = "kakis-acoustics-v70";
 const ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=69",
-  "./materials.js?v=69",
-  "./standard-materials.js?v=69",
-  "./app.js?v=69",
+  "./style.css?v=70",
+  "./materials.js?v=70",
+  "./standard-materials.js?v=70",
+  "./app.js?v=70",
   "./manifest.json",
   "./assets/app-icon.png",
   "./assets/shape_flat.png",

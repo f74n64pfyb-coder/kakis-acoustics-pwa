@@ -10,7 +10,7 @@
     <title>Kaki's Acoustics</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/app-icon.png">
-    <link rel="stylesheet" href="style.css?v=64">
+    <link rel="stylesheet" href="style.css?v=65">
   </head>
   <body>
     <div class="app-shell">
@@ -28,16 +28,25 @@
 
       <main>
         <section class="card">
-          <details>
-            <summary><span data-i18n="manual">მომხმარებლის გზამკვლევი</span></summary>
-            <ol class="manual-list">
-              <li data-i18n="guide1">ჩაწერე პროექტის სახელი, თუ გინდა PDF-ში გამოჩნდეს.</li>
-              <li data-i18n="guide2">აირჩიე ჭერის ფორმა და შეიყვანე შესაბამისი ზომები.</li>
-              <li data-i18n="guide3">კარისა და ფანჯრის ფართობები კედლის ფართობს ავტომატურად აკლდება.</li>
-              <li data-i18n="guide4">მასალებში ჯერ აირჩიე ვარიანტი; არჩეული არ არის ნიშნავს 0 შთანთქმას.</li>
-              <li data-i18n="guide5">თუ ზედაპირზე რამდენიმე მასალაა, დაამატე დამატებითი რიგი.</li>
-              <li data-i18n="guide7">PDF-ისთვის გამოიყენე გაზიარების ღილაკი.</li>
-            </ol>
+          <details class="user-guide">
+            <summary>
+              <span class="guide-label guide-ka">მომხმარებლის გზამკვლევი</span>
+              <span class="guide-label guide-en">User guide</span>
+            </summary>
+            <div class="guide-copy guide-ka">
+              <section><h3>1. ოთახის ზომები</h3><p>შეიყვანეთ პროექტის სახელი, აირჩიეთ ჭერის ფორმა და მიუთითეთ სიგრძე, სიგანე და სიმაღლე. საჭიროების შემთხვევაში შეიყვანეთ კარისა და ფანჯრის ფართობებიც.</p><p>იატაკის, კედლებისა და ჭერის ფართობები, ასევე ოთახის მოცულობა, ავტომატურად გამოითვლება.</p></section>
+              <section><h3>2. მასალები და აბსორბერები</h3><p>იატაკისთვის, კედლისთვის, კარისთვის, ფანჯრისთვისა და ჭერისთვის აირჩიეთ შესაბამისი მასალა. თუ ერთ ზედაპირზე რამდენიმე მასალაა გამოყენებული, დააჭირეთ „დამატება“, შეიყვანეთ ფართობი და აირჩიეთ მასალა.</p><p>დამატებითი აბსორბერის ფართობი არ უნდა აღემატებოდეს შესაბამისი ზედაპირის ფართობს.</p></section>
+              <section><h3>3. შედეგები და ჩარტი</h3><p>რევერბერაციის დრო T აჩვენებს, რამდენ ხანს რჩება ხმა ოთახში. შთანთქმის ფართობი A აჩვენებს ხმის შთანთქმის ეფექტს. Y ღერძი ავტომატურად ერგება მონაცემების დიაპაზონს და აჩვენებს შესაბამის ათწილადებს.</p><p>ნარინჯისფერი ხაზი არის შედეგი აბსორბერის გარეშე, მწვანე — აბსორბერით, ხოლო ლურჯი — დასახული მიზანი.</p></section>
+              <section><h3>4. რეალური გაზომვები და კალიბრაცია</h3><p>„ფაილების ატვირთვით“ დაამატეთ AudioTools-ის .txt ფაილები. რამდენიმე ფაილის შემთხვევაში თითოეული სიხშირისთვის მათი საშუალო მნიშვნელობა გამოითვლება.</p><p>აირჩიეთ EDT, T20 ან T30. ატვირთული გაზომვა ჩარტზე ცალკე ფერით გამოჩნდება. კალიბრაციის ჩამოსაშლელი მენიუდან აირჩიეთ EDT, T20 ან T30, რათა მოდელი რეალურ გაზომვას მოერგოს. „არჩევა (გამორთული)“ კალიბრაციას თიშავს.</p></section>
+              <section><h3>5. მიზანი, PDF და გასუფთავება</h3><p>შეგიძლიათ მიუთითოთ სასურველი რევერბერაციის დრო ან შთანთქმის ფართობი — მიზანი ჩარტზე ლურჯი ხაზით გამოჩნდება. „PDF ექსპორტი“ ქმნის ანგარიშს დასაბეჭდად ან PDF-ად შესანახად.</p><p>გასუფთავების ღილაკი შლის პროექტის მონაცემებს, მასალებს, აბსორბერებსა და ატვირთულ გაზომვებს. ახალი ვერსიის ჩასატვირთად, საჭიროების შემთხვევაში გამოიყენეთ მისამართის ბოლოში <code>?reset-cache=1</code>.</p></section>
+            </div>
+            <div class="guide-copy guide-en">
+              <section><h3>1. Room dimensions</h3><p>Enter a project name, choose the ceiling shape, and enter the room length, width and height. Add door and window areas when relevant.</p><p>The calculator automatically calculates floor, wall and ceiling areas, as well as room volume.</p></section>
+              <section><h3>2. Materials and absorbers</h3><p>Select a material for the floor, walls, door, window and ceiling. If a surface has several materials, select Add, enter the area and choose the additional material.</p><p>The area of an additional absorber must not exceed the related surface area.</p></section>
+              <section><h3>3. Results and chart</h3><p>Reverberation time T shows how long sound remains in the room. Absorption area A shows the sound absorption effect. The Y axis adapts automatically to the data range and uses suitable decimal steps.</p><p>The orange line is the result without absorber, green is with absorber, and blue is the target.</p></section>
+              <section><h3>4. Measurements and calibration</h3><p>Use Upload Files to add AudioTools .txt files. With several files, the calculator averages the available values for each frequency.</p><p>Select EDT, T20 or T30 to view the measurement. The uploaded measurement appears as a separate chart line. Choose EDT, T20 or T30 from the calibration menu to align the model with that real measurement. Select Off to disable calibration.</p></section>
+              <section><h3>5. Target, PDF and reset</h3><p>Set a desired reverberation time or absorption area to show a blue target line on the chart. Export PDF creates a report for printing or saving as a PDF.</p><p>Clear removes project data, materials, absorbers and uploaded measurements. If a new site version does not appear, open the site with <code>?reset-cache=1</code> at the end of its address.</p></section>
+            </div>
           </details>
         </section>
         
@@ -127,8 +136,8 @@
       </label>
     </template>
 
-    <script src="materials.js?v=64"></script>
-    <script src="standard-materials.js?v=64"></script>
-    <script src="app.js?v=64"></script>
+    <script src="materials.js?v=65"></script>
+    <script src="standard-materials.js?v=65"></script>
+    <script src="app.js?v=65"></script>
   </body>
 </html>

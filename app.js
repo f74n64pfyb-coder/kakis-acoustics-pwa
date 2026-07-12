@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "66";
+const APP_VERSION = "67";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1456,41 +1456,46 @@ function printDocumentCss() {
     body { width: 100%; font-size: 10.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .report-page { width: 100%; max-width: 100%; page-break-after: always; break-after: page; background: #fff; overflow: visible; }
     .report-page:last-child { page-break-after: auto; break-after: auto; }
+    .calculation-page { page-break-after: auto; break-after: auto; }
     .pdf-brand { display: grid; gap: 1px; justify-items: end; text-align: right; margin-bottom: 3mm; }
     .pdf-brand strong { font-size: 15px; font-weight: 650; }
     .pdf-brand span { color: #777; font-size: 9px; }
     .calculation-page h1 { margin: 3mm 0 5mm; font-size: 15px; font-weight: 500; }
     .explanation-page h1 { margin: 0 0 8mm; font-size: 15px; font-weight: 500; }
-    .pdf-top-grid { display: grid; grid-template-columns: 1fr; gap: 3mm; width: 100%; max-width: 100%; }
-    .pdf-room-image img { display: block; width: 52mm; max-width: 100%; height: 30mm; object-fit: contain; }
-    .pdf-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
+    .pdf-top-grid { display: grid; grid-template-columns: 48mm minmax(0, 1fr); gap: 3mm; width: 100%; max-width: 100%; align-items: start; }
+    .pdf-room-image { grid-column: 1; grid-row: 1; }
+    .pdf-room-image img { display: block; width: 48mm; max-width: 100%; height: 27mm; object-fit: contain; }
+    .pdf-inputs { display: grid; grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
+    .pdf-top-grid.totals { grid-column: 1 / -1; }
     .pdf-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 2px; min-width: 0; }
     .pdf-field span { grid-column: 1 / -1; font-size: 9px; overflow-wrap: anywhere; }
     .pdf-field strong { min-width: 0; width: 100%; height: 15px; padding: 1px 3px; border: 1px solid #111; font-size: 9px; font-weight: 400; line-height: 12px; overflow: hidden; }
     .pdf-field em { font-size: 9px; font-style: normal; }
     .calculation-page h2, .pdf-type { margin: 3mm 0 1.5mm; font-size: 12px; font-weight: 400; }
-    .pdf-materials { display: grid; gap: 4px; width: 100%; }
-    .pdf-material-row { background: #d3d3d3; padding: 3mm 3mm 2.5mm; break-inside: avoid; }
+    .pdf-materials { display: grid; gap: 2px; width: 100%; }
+    .pdf-material-row { background: #d3d3d3; padding: 1.8mm 2.2mm 1.5mm; break-inside: avoid; }
     .pdf-material-top { display: grid; grid-template-columns: minmax(0, 1fr) 16mm; gap: 2mm; align-items: baseline; }
     .pdf-material-top em { grid-column: 1 / -1; }
-    .pdf-material-top strong { font-size: 10px; font-weight: 700; overflow-wrap: anywhere; }
-    .pdf-material-top span, .pdf-material-top em { font-size: 8.5px; font-style: normal; overflow-wrap: anywhere; }
-    .pdf-coefficients { margin-top: 2mm; padding: 0; }
-    .pdf-coefficient-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8mm 2mm; max-width: 100%; }
-    .pdf-coefficient-grid span { display: grid; grid-template-columns: auto 1fr; gap: 2px; align-items: baseline; min-width: 0; font-size: 8px; line-height: 1.08; }
+    .pdf-material-top strong { font-size: 9px; font-weight: 700; overflow-wrap: anywhere; }
+    .pdf-material-top span, .pdf-material-top em { font-size: 7.5px; font-style: normal; overflow-wrap: anywhere; }
+    .pdf-coefficients { margin-top: 1mm; padding: 0; }
+    .pdf-coefficient-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 1mm; max-width: 100%; }
+    .pdf-coefficient-grid span { display: flex; gap: 1px; align-items: baseline; min-width: 0; font-size: 7px; line-height: 1.08; white-space: nowrap; }
     .pdf-coefficient-grid b { font-weight: 500; }
     .pdf-coefficient-grid em { font-style: normal; }
     .report-table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 2mm; }
     .report-table td, .report-table th { border: 1px solid #d8dce2; padding: 2px; font-size: 6.5px; text-align: center; overflow-wrap: anywhere; }
     .report-table th { background: #b6d7f5; font-weight: 600; }
     .report-table td:first-child, .report-table th:first-child { text-align: left; }
-    .chart-legend { display: flex; flex-wrap: wrap; gap: 2mm 4mm; margin: 2mm 0 1mm; font-size: 8px; }
+    .chart-legend { display: flex; flex-wrap: wrap; gap: 1.5mm 3mm; margin: 1.5mm 0 1mm; font-size: 7.5px; }
     .chart-legend span { display: inline-grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 1.5mm; }
     .chart-legend i { width: 7mm; height: 1mm; border-radius: 99px; }
-    .chart { display: block; width: 100%; max-width: 100%; height: 30mm; margin: 2mm 0 0; border: 1px solid #d8dce2; }
-    .pdf-explainer { display: block; margin-top: 8mm; padding: 4mm; background: #d4d4d4; }
-    .pdf-explainer h2 { font-size: 12px; margin: 0 0 3mm; }
-    .pdf-explainer p { font-size: 10px; line-height: 1.2; margin: 0 0 4mm; }
+    .chart { display: block; width: 100%; max-width: 100%; height: 28mm; margin: 1mm 0 0; border: 1px solid #d8dce2; }
+    .explanation-page { margin-top: 4mm; break-inside: avoid; }
+    .explanation-page .pdf-brand, .explanation-page h1 { display: none; }
+    .pdf-explainer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3mm; margin-top: 0; padding: 2.5mm; background: #d4d4d4; }
+    .pdf-explainer h2 { font-size: 8.5px; margin: 0 0 1mm; }
+    .pdf-explainer p { font-size: 7.3px; line-height: 1.15; margin: 0 0 2mm; }
   `;
 }
 

@@ -951,24 +951,24 @@ td:first-child, th:first-child {
 
 .pdf-coefficients {
   margin-top: 4px;
-  padding-left: 242px;
+  padding-left: 0;
 }
 
 .pdf-coefficient-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 2px 6px;
-  max-width: 420px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 2px;
+  max-width: 100%;
 }
 
 .pdf-coefficient-grid span {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 3px;
+  display: flex;
+  gap: 1px;
   align-items: baseline;
   min-width: 0;
-  font-size: 10.5px;
+  font-size: 9px;
   line-height: 1.08;
+  white-space: nowrap;
 }
 
 .pdf-coefficient-grid b {
@@ -1647,6 +1647,10 @@ td:first-child, th:first-child {
     page-break-after: auto;
     break-after: auto;
   }
+  .calculation-page {
+    page-break-after: auto;
+    break-after: auto;
+  }
   .intro-page {
     min-height: 0;
   }
@@ -1675,21 +1679,27 @@ td:first-child, th:first-child {
   }
   .pdf-top-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 48mm minmax(0, 1fr);
     gap: 3mm;
     width: 100%;
     max-width: 100%;
   }
   .pdf-room-image img {
-    width: 52mm;
+    width: 48mm;
     max-width: 100%;
-    height: 30mm;
+    height: 27mm;
+  }
+  .pdf-room-image {
+    grid-column: 1;
+    grid-row: 1;
   }
   .pdf-inputs {
+    grid-column: 2;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 3px;
   }
   .pdf-inputs.totals {
+    grid-column: 1 / -1;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .pdf-field span {
@@ -1708,10 +1718,10 @@ td:first-child, th:first-child {
     font-size: 12px;
   }
   .pdf-materials {
-    gap: 4px;
+    gap: 2px;
   }
   .pdf-material-row {
-    padding: 3mm 3mm 2.5mm;
+    padding: 1.8mm 2.2mm 1.5mm;
   }
   .pdf-material-top {
     grid-template-columns: minmax(0, 1fr) 16mm;
@@ -1732,11 +1742,12 @@ td:first-child, th:first-child {
   }
   .pdf-coefficient-grid {
     max-width: 100%;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.8mm 2mm;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 1mm;
   }
   .pdf-coefficient-grid span {
-    font-size: 8px;
+    font-size: 7px;
+    white-space: nowrap;
   }
   .report-table {
     width: 100%;
@@ -1754,35 +1765,36 @@ td:first-child, th:first-child {
   display: block;
   width: 100%;
   max-width: 100%;
-  height: auto;
-  margin: 15px 0 0 0;
+  height: 28mm;
+  margin: 1mm 0 0;
   background: #ffffff;      /* სუფთა თეთრი ფონი, როგორც Troldtekt-ზეა */
   border: 1px solid #d5d8de; /* თხელი და დახვეწილი ნაცრისფერი ჩარჩო */
   border-radius: 4px;        /* ოდნავ მომრგვალებული კუთხეები სისუფთავისთვის */
   padding: 15px 10px;        /* შიდა სივრცე (Padding), რომ ხაზები კანტს არ მიეჯახოს */
 }
 
+  .explanation-page {
+    margin-top: 4mm;
+    break-inside: avoid;
   }
-  .explanation-page .pdf-brand {
-    margin-bottom: 14mm;
-  }
-  .explanation-page h1 {
-    margin-top: 0;
-  }
+  .explanation-page .pdf-brand,
+  .explanation-page h1 { display: none; }
   .pdf-explainer {
-    margin-top: 8mm;
-    display: block;
-    padding: 4mm;
+    margin-top: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3mm;
+    padding: 2.5mm;
     background: #d4d4d4;
   }
   .pdf-explainer h2 {
-    font-size: 12px;
-    margin-bottom: 4mm;
+    font-size: 8.5px;
+    margin: 0 0 1mm;
   }
   .pdf-explainer p {
-    font-size: 10.5px;
-    line-height: 1.18;
-    margin-bottom: 5mm;
+    font-size: 7.3px;
+    line-height: 1.15;
+    margin: 0 0 2mm;
   }
   .extra-row {
     break-inside: avoid;

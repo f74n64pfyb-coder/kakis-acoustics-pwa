@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "58";
+const APP_VERSION = "59";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1119,12 +1119,8 @@ function resultPresentation(c, resultType = state.resultType) {
   const values = resultType === 0 ? c.reverberation : c.absorption;
   const valuesWithout = resultType === 0 ? c.reverberationWithoutAbsorber : c.absorptionWithoutAbsorber;
   
-  const rows = hasAbsorber
-    ? [{label: t("withoutAbsorber"), values: valuesWithout}]
-    : [{label: t("calculation"), values}];
-  const series = hasAbsorber
-    ? [{label: t("withoutAbsorber"), values: valuesWithout, color: "#f39a00", dash: "8 6"}]
-    : [{label: t("calculation"), values, color: "#f39a00", dash: "8 6"}];
+  const rows = [{label: t("withoutAbsorber"), values: valuesWithout}];
+  const series = [{label: t("withoutAbsorber"), values: valuesWithout, color: "#f39a00", dash: "8 6"}];
   
   if (c.avgMeasured && resultType === 0) {
     if (state.measuredType === 0 && c.avgMeasured.edt && c.avgMeasured.edt.some(v => v > 0)) {
@@ -1139,10 +1135,8 @@ function resultPresentation(c, resultType = state.resultType) {
     }
   }
   
-  if (hasAbsorber) {
-    rows.push({label: t("withAbsorber"), values});
-    series.push({label: t("withAbsorber"), values, color: "#078000", dash: "8 6"});
-  }
+  rows.push({label: t("withAbsorber"), values});
+  series.push({label: t("withAbsorber"), values, color: "#078000", dash: "8 6"});
   
   if (hasAbsorber && target) {
     series.push({label: t("target"), values: target, color: "#2563eb", dash: "8 6"});

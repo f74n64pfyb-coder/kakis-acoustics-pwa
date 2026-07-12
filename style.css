@@ -22,6 +22,7 @@ html, body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -33,7 +34,8 @@ html, body {
 body {
   -webkit-font-smoothing: antialiased;
   padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
   font-size: 15px;
 }
 
@@ -177,6 +179,22 @@ main {
 }
 
 .icon-btn.danger { color: var(--danger); }
+
+summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.manual-list {
+  margin: 12px 0 0;
+  padding-left: 24px;
+  display: grid;
+  gap: 8px;
+  color: #333;
+  line-height: 1.45;
+}
 
 .field {
   display: grid;
@@ -1400,7 +1418,8 @@ td:first-child, th:first-child {
 
   .field > span,
   .material-title,
-  .metrics span {
+  .metrics span,
+  .manual-list li {
     overflow-wrap: anywhere;
   }
 

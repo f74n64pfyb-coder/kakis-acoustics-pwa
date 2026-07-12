@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "48";
+const APP_VERSION = "49";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1018,19 +1018,11 @@ function resultTable(title, values, suffix) {
 
 function resultRowsTable(title, rows, suffix) {
   const colgroup = tableColgroup();
-  const measuredLabels = new Set([
-    "გაზომილი EDT",
-    "გაზომილი T20",
-    "გაზომილი T30",
-    "Measured EDT",
-    "Measured T20",
-    "Measured T30"
-  ]);
   
   const filteredRows = rows.filter(row => {
     const label = row.label;
     return label === t("withoutAbsorber") || 
-           measuredLabels.has(label) ||
+           label === "გაზომილი EDT" || label === "გაზომილი T20" || label === "გაზომილი T30" ||
            label === t("withAbsorber") || label === t("calculation");
   });
 
@@ -1072,15 +1064,6 @@ function targetLabel(resultType = state.resultType) {
   return String(state[targetNameKey(resultType)] || "").trim() || t("target");
 }
 
-function measuredLabel(typeIndex = state.measuredType) {
-  const method = ["EDT", "T20", "T30"][Number(typeIndex)] || "EDT";
-  return state.language === "en" ? `Measured ${method}` : `გაზომილი ${method}`;
-}
-
-function chartUnitLabel() {
-  return state.resultType === 0 ? (state.language === "en" ? "sec" : "წმ") : "m² Sab";
-}
-
 function resultPresentation(c, resultType = state.resultType) {
   const hasAbsorber = hasSelectedAbsorber();
   const target = targetSeries(resultType);
@@ -1096,14 +1079,14 @@ function resultPresentation(c, resultType = state.resultType) {
   
   if (c.avgMeasured && resultType === 0) {
     if (state.measuredType === 0 && c.avgMeasured.edt && c.avgMeasured.edt.some(v => v > 0)) {
-      rows.push({label: measuredLabel(0), values: c.avgMeasured.edt});
-      series.push({label: measuredLabel(0), values: c.avgMeasured.edt, color: "#8dd1e1"});
+      rows.push({label: "გაზომილი EDT", values: c.avgMeasured.edt});
+      series.push({label: "გაზომილი EDT", values: c.avgMeasured.edt, color: "#8dd1e1"});
     } else if (state.measuredType === 1 && c.avgMeasured.t20 && c.avgMeasured.t20.some(v => v > 0)) {
-      rows.push({label: measuredLabel(1), values: c.avgMeasured.t20});
-      series.push({label: measuredLabel(1), values: c.avgMeasured.t20, color: "#82ca9d"});
+      rows.push({label: "გაზომილი T20", values: c.avgMeasured.t20});
+      series.push({label: "გაზომილი T20", values: c.avgMeasured.t20, color: "#82ca9d"});
     } else if (state.measuredType === 2 && c.avgMeasured.t30 && c.avgMeasured.t30.some(v => v > 0)) {
-      rows.push({label: measuredLabel(2), values: c.avgMeasured.t30});
-      series.push({label: measuredLabel(2), values: c.avgMeasured.t30, color: "#ff7300"});
+      rows.push({label: "გაზომილი T30", values: c.avgMeasured.t30});
+      series.push({label: "გაზომილი T30", values: c.avgMeasured.t30, color: "#ff7300"});
     }
   }
   
@@ -1169,7 +1152,6 @@ function renderResults(c) {
     <h3>${state.resultType === 0 ? t("reverberation") : t("absorption")}</h3>
     ${resultRowsTable(state.resultType === 0 ? t("reverberation") : t("absorption"), rows, suffix)}
     ${chartLegend(series)}
-    <div class="chart-unit">${chartUnitLabel()}</div>
     ${chartSvg(series)}
     <div class="result-summary">
       <div class="summary-box"><span>${t("average125")}</span><strong>${fmt(averageFrom(values, 125))} ${suffix}</strong></div>
@@ -1754,9 +1736,7 @@ window.handleAudioFilesUpload = function(event) {
 };
 
 window.clearAudioFiles = function() {
-  state.measuredFiles = [];
-  state.calibrationType = -1;
-  saveState(); renderComputedOnly(); window.injectEngineeringUI();
+  state.measuredFiles = []; saveState(); renderComputedOnly(); window.injectEngineeringUI();
 };
 
 const originalRenderComputedOnly = renderComputedOnly;
@@ -1768,8 +1748,7 @@ renderComputedOnly = function() {
 setTimeout(window.injectEngineeringUI, 600);
 
 window.setCalType = function(type) {
-  const value = Number(type);
-  state.calibrationType = [0, 1, 2].includes(value) ? value : -1;
+  state.calibrationType = Number(type);
   saveState();
   renderComputedOnly();
   window.injectEngineeringUI();

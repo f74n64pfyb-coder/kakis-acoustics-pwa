@@ -647,13 +647,6 @@ button.material-title:focus-visible {
   border-radius: 0px; /* სწორი, ქარხნული ხაზი მომრგვალების გარეშე */
 }
 
-.chart-unit {
-  color: #666;
-  font-size: 12px;
-  font-weight: 600;
-  margin: 8px 0 -6px 44px;
-}
-
 
 .subpanel {
   margin: 14px 0;

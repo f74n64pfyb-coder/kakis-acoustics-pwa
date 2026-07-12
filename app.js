@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "65";
+const APP_VERSION = "66";
 const freqs = ["63", "125", "250", "500", "1000", "2000", "4000", "8000"];
 const sourceFreqs = ["125", "250", "500", "1000", "2000", "4000"];
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -389,6 +389,14 @@ function customData(source) {
 
 function materialAt(kind, selection, source) {
   if (selection < 0) return null;
+  if (isCustomSelection(kind, selection)) {
+    const custom = customData(source);
+    return {
+      name: custom.name || (state.language === "en" ? "User defined" : "საკუთარი მასალა"),
+      values: custom.values,
+      custom: true
+    };
+  }
   return materialOptions(kind)[selection] || null;
 }
 
@@ -1144,8 +1152,8 @@ function resultPresentation(c, resultType = state.resultType) {
     series.push({label: t("withAbsorber"), values, color: "#078000", dash: "8 6"});
   }
   
-  if (hasAbsorber && target) {
-    series.push({label: t("target"), values: target, color: "#2563eb", dash: "8 6"});
+  if (target) {
+    series.push({label: targetLabel(resultType), values: target, color: "#2563eb", dash: "8 6"});
   }
   
   return {rows, series, values};

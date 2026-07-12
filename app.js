@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kakis-acoustics-pwa-state-v1";
-const APP_VERSION = "62";
+const APP_VERSION = "63";
 const freqs = ["125", "250", "500", "1000", "2000", "4000"];
 const sourceFreqs = freqs;
 const shapeAssets = ["shape_flat.png", "shape_vaulted.png", "shape_raked.png", "shape_arbitrary.png"];
@@ -1118,6 +1118,16 @@ function measuredLabel(typeIndex) {
   return state.language === "en" ? `Measured ${method}` : `გაზომილი ${method}`;
 }
 
+function measuredValues(c, typeIndex, resultType = state.resultType) {
+  if (!c.avgMeasured) return null;
+  const key = ["edt", "t20", "t30"][Number(typeIndex)] || "edt";
+  const values = c.avgMeasured[key];
+  if (!values || !values.some(v => v > 0)) return null;
+  if (resultType === 0) return values;
+  const vol = volume();
+  return values.map(t => t > 0 ? (0.16 * vol) / t : 0);
+}
+
 function chartUnit() {
   return state.resultType === 0 ? (state.language === "en" ? "sec" : "წმ") : "m² Sab";
 }
@@ -1135,16 +1145,12 @@ function resultPresentation(c, resultType = state.resultType) {
     ? [{label: t("withoutAbsorber"), values: valuesWithout, color: "#f39a00", dash: "8 6"}]
     : [{label: t("calculation"), values, color: "#f39a00", dash: "8 6"}];
   
-  if (c.avgMeasured && resultType === 0) {
-    if (state.measuredType === 0 && c.avgMeasured.edt && c.avgMeasured.edt.some(v => v > 0)) {
-      rows.push({label: measuredLabel(0), values: c.avgMeasured.edt});
-      series.push({label: measuredLabel(0), values: c.avgMeasured.edt, color: "#a855f7", dash: "8 6"});
-    } else if (state.measuredType === 1 && c.avgMeasured.t20 && c.avgMeasured.t20.some(v => v > 0)) {
-      rows.push({label: measuredLabel(1), values: c.avgMeasured.t20});
-      series.push({label: measuredLabel(1), values: c.avgMeasured.t20, color: "#14b8a6", dash: "8 6"});
-    } else if (state.measuredType === 2 && c.avgMeasured.t30 && c.avgMeasured.t30.some(v => v > 0)) {
-      rows.push({label: measuredLabel(2), values: c.avgMeasured.t30});
-      series.push({label: measuredLabel(2), values: c.avgMeasured.t30, color: "#ef4444", dash: "8 6"});
+  if (c.avgMeasured) {
+    const measured = measuredValues(c, state.measuredType, resultType);
+    const measuredColors = ["#a855f7", "#14b8a6", "#ef4444"];
+    if (measured) {
+      rows.push({label: measuredLabel(state.measuredType), values: measured});
+      series.push({label: measuredLabel(state.measuredType), values: measured, color: measuredColors[state.measuredType] || "#ef4444", dash: "8 6"});
     }
   }
   
@@ -1181,7 +1187,7 @@ function renderResults(c) {
   let tabsHtml = "";
   let stiHtml = "";
   
-  if (state.measuredFiles && state.measuredFiles.length > 0 && state.resultType === 0) {
+  if (state.measuredFiles && state.measuredFiles.length > 0) {
     tabsHtml = `
       <div style="display: flex; gap: 4px; background: #f8fafc; padding: 4px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
         <button type="button" onclick="window.setMeasuredType(0)" style="flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; background: ${state.measuredType === 0 ? '#f97316' : 'transparent'}; color: ${state.measuredType === 0 ? '#fff' : '#64748b'}; font-weight: 600; font-size: 14px;">EDT</button>
@@ -1190,7 +1196,7 @@ function renderResults(c) {
       </div>
     `;
 
-    stiHtml = `
+    if (state.resultType === 0) stiHtml = `
       <div style="display: flex; gap: 15px; margin-bottom: 20px;">
         <div style="flex: 1; background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
           <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Simulated STI</div>
